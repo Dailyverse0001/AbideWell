@@ -7,7 +7,8 @@
  *
  * Usage: node scripts/make-pages.mjs <output-dir>
  */
-import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -49,6 +50,24 @@ function rewrite(rel, text) {
   }
 
   return text;
+}
+
+/* Never wipe a git worktree: deleting it removes the .git link. */
+let outExists = false;
+try {
+  await access(out, constants.F_OK);
+  outExists = true;
+} catch {}
+if (outExists) {
+  try {
+    await access(join(out, '.git'), constants.F_OK);
+    throw new Error(
+      'Refusing to build into ' + out + ' because it is a git worktree. ' +
+      'Build into a scratch folder, then copy the files across.'
+    );
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
 }
 
 await rm(out, { recursive: true, force: true });
