@@ -148,6 +148,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ simplify });
   } catch (error) {
     const message = String((error && error.message) || 'Could not simplify.');
+
+    if (message.includes('401') || message.includes('403')) {
+      return res.status(502).json({ error: 'The AI key was rejected. Check it on the host.' });
+    }
+
     return res.status(502).json({ error: 'Explanation failed (' + message + ').' });
   }
 }
