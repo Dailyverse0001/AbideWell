@@ -646,6 +646,25 @@ code {
 
 .login-panel .lede { margin-bottom: 18px; }
 
+.setup {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ink-faint);
+}
+
+.setup summary {
+  cursor: pointer;
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.setup[open] summary { margin-bottom: 14px; }
+
+.setup .pill { margin-top: 14px; }
+
 label {
   display: block;
   margin: 16px 0 6px;

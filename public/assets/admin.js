@@ -1,14 +1,41 @@
-/* Abidewell — posting screen */
+/* Abidewell — posting screen
+ *
+ * Two ways to post:
+ *  1. Direct to GitHub  — used on GitHub Pages. The GitHub token is encrypted
+ *     with the passphrase and kept only in this phone's storage.
+ *  2. Through a server  — used on Vercel/Netlify, where ADMIN_PASSWORD is
+ *     checked server-side and the token never touches the browser.
+ */
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
 
-const TOKEN_KEY = 'abidewell.admin.v1';
+const VAULT_KEY = 'abidewell.vault.v1';
+
+const GH = CFG.github || {
+  owner: 'Dailyverse0001',
+  repo: 'AbideWell',
+  branch: 'main',
+  path: 'public/data/verses.json'
+};
+
+const DIRECT =
+  CFG.direct === true ||
+  /\.github\.io$/i.test(location.hostname) ||
+  new URLSearchParams(location.search).has('direct');
+
+const API =
+  'https://api.github.com/repos/' + GH.owner + '/' + GH.repo + '/contents/' + GH.path;
 
 const els = {
   loginView: $('#loginView'),
   editorView: $('#editorView'),
   loginForm: $('#loginForm'),
   password: $('#password'),
+  loginLede: $('#loginLede'),
+  loginHint: $('#loginHint'),
+  setupBox: $('#setupBox'),
+  setupToken: $('#setupToken'),
+  connectBtn: $('#connectBtn'),
   logoutBtn: $('#logoutBtn'),
   date: $('#date'),
   reference: $('#reference'),
@@ -29,7 +56,7 @@ const els = {
   toast: $('#toast')
 };
 
-let token = '';
+let secret = ''; // the token, held in memory only while unlocked
 let latestVerses = [];
 
 /* ------------------------------------------------------------------ dates */
@@ -59,7 +86,7 @@ function toast(message) {
   els.toast.textContent = message;
   els.toast.classList.add('show');
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => els.toast.classList.remove('show'), 3000);
+  toastTimer = window.setTimeout(() => els.toast.classList.remove('show'), 3200);
 }
 
 function setStatus(text, kind) {
@@ -67,47 +94,188 @@ function setStatus(text, kind) {
   els.statusChip.className = 'chip' + (kind ? ' ' + kind : '');
 }
 
-/* ------------------------------------------------------------------- auth */
+/* ------------------------------------------------------ encryption helpers */
 
-function showEditor() {
-  els.loginView.hidden = true;
-  els.editorView.hidden = false;
-  els.logoutBtn.hidden = false;
-  setStatus('Ready');
-  loadList();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function toBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
-function showLogin() {
-  els.loginView.hidden = false;
-  els.editorView.hidden = true;
-  els.logoutBtn.hidden = true;
+function fromBase64(text) {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
-function forgetToken() {
-  token = '';
-  try { localStorage.removeItem(TOKEN_KEY); } catch {}
-  showLogin();
-  setStatus('Locked');
+async function deriveKey(password, salt) {
+  const base = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
 }
 
-els.loginForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const entered = els.password.value.trim();
-  if (!entered) return;
+/* Turns the token into a blob only this passphrase can open. */
+async function lockSecret(token, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const box = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(token));
 
-  token = entered;
-  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
-  els.password.value = '';
-  showEditor();
-  toast('Unlocked');
-});
+  return { v: 1, salt: toBase64(salt), iv: toBase64(iv), box: toBase64(box) };
+}
 
-els.logoutBtn.addEventListener('click', () => {
-  forgetToken();
-  toast('Logged out');
-});
+/* Throws if the passphrase is wrong. */
+async function unlockSecret(vault, password) {
+  const key = await deriveKey(password, fromBase64(vault.salt));
+  const plain = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: fromBase64(vault.iv) },
+    key,
+    fromBase64(vault.box)
+  );
+  return decoder.decode(plain);
+}
 
-/* ------------------------------------------------------------- api helper */
+function readVault() {
+  try {
+    const raw = localStorage.getItem(VAULT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeVault(vault) {
+  try {
+    localStorage.setItem(VAULT_KEY, JSON.stringify(vault));
+  } catch {}
+}
+
+/* ------------------------------------------------------------ github calls */
+
+function ghHeaders() {
+  return {
+    Authorization: 'Bearer ' + secret,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
+function githubError(status) {
+  if (status === 401) return 'That passphrase is not right.';
+  if (status === 403) return 'GitHub refused the key. Check Contents permission.';
+  if (status === 404) return 'Repository or file not found.';
+  if (status === 409) return 'Another change landed at the same time. Try again.';
+  if (status === 422) return 'GitHub rejected the change. Try again.';
+  return 'GitHub said ' + status + '.';
+}
+
+async function readFile() {
+  const res = await fetch(
+    API + '?ref=' + encodeURIComponent(GH.branch) + '&t=' + Date.now(),
+    { headers: ghHeaders(), cache: 'no-store' }
+  );
+
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(githubError(res.status));
+
+  const data = await res.json();
+  const text = decoder.decode(fromBase64(String(data.content || '').replace(/\s/g, '')));
+
+  return { sha: data.sha, text };
+}
+
+function parseList(text) {
+  try {
+    const data = JSON.parse(text || '[]');
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function sortNewestFirst(list) {
+  return list
+    .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
+function toBase64Utf8(text) {
+  return toBase64(encoder.encode(text));
+}
+
+async function writeFile(text, sha, message) {
+  const body = {
+    message,
+    content: toBase64Utf8(text),
+    branch: GH.branch
+  };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(API, {
+    method: 'PUT',
+    headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw new Error(githubError(res.status));
+  return res.json();
+}
+
+async function directSave(verse) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const file = await readFile();
+    const list = parseList(file && file.text);
+    const kept = list.filter((v) => v && v.date !== verse.date);
+    const next = sortNewestFirst([{ ...verse, postedAt: new Date().toISOString() }, ...kept]);
+
+    try {
+      await writeFile(JSON.stringify(next, null, 2) + '\n', file && file.sha, 'verse: ' + verse.reference);
+      return { verses: next };
+    } catch (error) {
+      if (error.message.startsWith('Another change') && attempt === 0) continue;
+      throw error;
+    }
+  }
+
+  throw new Error('Could not save. Try again.');
+}
+
+async function directDelete(date) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const file = await readFile();
+    const list = parseList(file && file.text);
+    const next = sortNewestFirst(list.filter((v) => v && v.date !== date));
+
+    try {
+      await writeFile(JSON.stringify(next, null, 2) + '\n', file && file.sha, 'verse: remove ' + date);
+      return { verses: next };
+    } catch (error) {
+      if (error.message.startsWith('Another change') && attempt === 0) continue;
+      throw error;
+    }
+  }
+
+  throw new Error('Could not delete. Try again.');
+}
+
+/* ------------------------------------------------------------- server path */
 
 async function callApi(payload) {
   let sawResponse = false;
@@ -121,7 +289,7 @@ async function callApi(payload) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + token
+          Authorization: 'Bearer ' + secret
         },
         body: JSON.stringify(payload)
       });
@@ -138,7 +306,7 @@ async function callApi(payload) {
     lastJson = data;
 
     if (res.status === 401) {
-      forgetToken();
+      forgetPhone();
       throw new Error('That passphrase is not right.');
     }
 
@@ -158,6 +326,124 @@ async function callApi(payload) {
     'No write endpoint found. Make sure the function is deployed on this host.'
   );
 }
+
+/* ------------------------------------------------------------------- auth */
+
+function showEditor() {
+  els.loginView.hidden = true;
+  els.editorView.hidden = false;
+  els.logoutBtn.hidden = false;
+  setStatus('Ready');
+  loadList();
+}
+
+function showLogin() {
+  els.loginView.hidden = false;
+  els.editorView.hidden = true;
+  els.logoutBtn.hidden = true;
+}
+
+function forgetPhone() {
+  secret = '';
+  try { localStorage.removeItem(VAULT_KEY); } catch {}
+  showLogin();
+  setStatus('Locked');
+}
+
+async function testToken(value) {
+  const res = await fetch(API + '?ref=' + encodeURIComponent(GH.branch), {
+    headers: {
+      Authorization: 'Bearer ' + value,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    cache: 'no-store'
+  });
+
+  if (res.status === 401) throw new Error('GitHub rejected that token.');
+  if (res.status === 403) throw new Error('That token cannot reach this repository.');
+  if (res.status === 404) throw new Error('That token cannot see this repository.');
+  if (!res.ok) throw new Error(githubError(res.status));
+}
+
+els.loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const passphrase = els.password.value;
+  if (!passphrase) return;
+
+  if (!DIRECT) {
+    secret = passphrase;
+    els.password.value = '';
+    showEditor();
+    toast('Unlocked');
+    return;
+  }
+
+  const vault = readVault();
+  if (!vault) {
+    toast('Connect this phone first, below.');
+    els.setupBox.open = true;
+    return;
+  }
+
+  els.password.disabled = true;
+
+  try {
+    const token = await unlockSecret(vault, passphrase);
+    await testToken(token);
+    secret = token;
+    els.password.value = '';
+    showEditor();
+    toast('Unlocked');
+  } catch {
+    toast('That passphrase is not right.');
+    els.password.select();
+  } finally {
+    els.password.disabled = false;
+  }
+});
+
+els.connectBtn.addEventListener('click', async () => {
+  const passphrase = els.password.value;
+  const token = els.setupToken.value.trim();
+
+  if (!passphrase) {
+    toast('Type the passphrase first.');
+    els.password.focus();
+    return;
+  }
+  if (!token) {
+    toast('Paste the token.');
+    els.setupToken.focus();
+    return;
+  }
+  if (!(window.crypto && window.crypto.subtle)) {
+    toast('This browser cannot store the key. Use Chrome.');
+    return;
+  }
+
+  els.connectBtn.disabled = true;
+  els.connectBtn.textContent = 'Checking…';
+
+  try {
+    await testToken(token);
+    writeVault(await lockSecret(token, passphrase));
+    els.setupToken.value = '';
+    els.setupBox.open = false;
+    toast('This phone is connected. Now tap Unlock.');
+  } catch (error) {
+    toast(error.message || 'Could not connect.');
+  } finally {
+    els.connectBtn.disabled = false;
+    els.connectBtn.textContent = 'Connect this phone';
+  }
+});
+
+els.logoutBtn.addEventListener('click', () => {
+  if (!window.confirm('Forget the saved key on this phone? You will need the token again.')) return;
+  forgetPhone();
+  toast('This phone was forgotten');
+});
 
 /* ------------------------------------------------------------------ form */
 
@@ -210,7 +496,16 @@ els.clearBtn.addEventListener('click', () => {
   els.reference.focus();
 });
 
-/* ------------------------------------------------------------- auto fill */
+/* --------------------------------------------------------------- auto fill */
+
+function lookup(reference) {
+  return Promise.any([
+    fetch('https://bible-api.com/' + encodeURIComponent(reference) + '?translation=kjv')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('bad')))),
+    fetch('https://bible-api.com/' + encodeURIComponent(reference) + '?translation=web')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('bad'))))
+  ]);
+}
 
 els.autoFillBtn.addEventListener('click', async () => {
   const reference = els.reference.value.trim();
@@ -225,12 +520,7 @@ els.autoFillBtn.addEventListener('click', async () => {
   els.autoFillBtn.textContent = 'Looking…';
 
   try {
-    const url = 'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=kjv';
-    const res = await fetch(url);
-
-    if (!res.ok) throw new Error('not found');
-
-    const data = await res.json();
+    const data = await lookup(reference);
     const text = String(data.text || '').replace(/\s+/g, ' ').trim();
 
     if (!text) throw new Error('empty');
@@ -273,14 +563,18 @@ els.postBtn.addEventListener('click', async () => {
   setStatus('Posting');
 
   try {
-    const result = await callApi({ action: 'save', verse });
+    const result = DIRECT
+      ? await directSave(verse)
+      : await callApi({ action: 'save', verse });
 
     latestVerses = Array.isArray(result.verses) ? result.verses : [];
     renderList(latestVerses);
 
     setStatus('Live soon', 'live');
-    els.postHint.textContent = 'Posted. The live site updates in about 30 seconds.';
-    toast('Posted. Live in ~30s.');
+    els.postHint.textContent = DIRECT
+      ? 'Saved to GitHub. The site picks it up within a minute.'
+      : 'Posted. The live site updates in about 30 seconds.';
+    toast('Posted.');
     els.postBtn.textContent = 'Posted';
     window.setTimeout(() => {
       els.postBtn.textContent = 'Post verse';
@@ -358,10 +652,13 @@ function renderList(verses) {
       btn.textContent = '…';
 
       try {
-        const result = await callApi({ action: 'delete', date });
+        const result = DIRECT
+          ? await directDelete(date)
+          : await callApi({ action: 'delete', date });
+
         latestVerses = Array.isArray(result.verses) ? result.verses : [];
         renderList(latestVerses);
-        toast('Deleted. Live in ~30s.');
+        toast('Deleted.');
       } catch (error) {
         toast(error.message || 'Could not delete.');
         btn.disabled = false;
@@ -373,6 +670,13 @@ function renderList(verses) {
 
 async function loadList() {
   try {
+    if (DIRECT && secret) {
+      const file = await readFile();
+      latestVerses = sortNewestFirst(parseList(file && file.text));
+      renderList(latestVerses);
+      return;
+    }
+
     const res = await fetch('../data/verses.json?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
@@ -395,15 +699,24 @@ function init() {
   els.date.value = todayISO();
   updatePreview();
 
-  try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch {}
+  if (DIRECT) {
+    els.setupBox.hidden = false;
+    els.loginLede.textContent = 'The passphrase unlocks the GitHub key saved on this phone.';
+    els.loginHint.textContent =
+      'The key is scrambled with your passphrase and never leaves this phone.';
 
-  if (token) {
-    showEditor();
+    if (!readVault()) {
+      els.setupBox.open = true;
+      els.loginHint.textContent = 'This phone is not connected yet. Open “First time on this phone”.';
+    }
   } else {
-    showLogin();
-    setStatus('Locked');
-    els.password.focus();
+    els.loginLede.textContent = 'Enter your passphrase once. This phone will remember it.';
+    els.loginHint.textContent = 'This is the passphrase you set as ADMIN_PASSWORD when you deployed.';
   }
+
+  showLogin();
+  setStatus('Locked');
+  els.password.focus();
 }
 
 init();
