@@ -614,6 +614,51 @@ function findExplanation(entries, reference) {
   return '';
 }
 
+const SIMPLE_CACHE = new Map();
+
+function bookSlug(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function splitReference(reference) {
+  const hit = normaliseRef(reference).match(/^(.+?)\s*(\d+):(\d+)/);
+  if (!hit) return null;
+  return { book: hit[1].trim(), chapter: Number(hit[2]), verse: Number(hit[3]) };
+}
+
+async function simpleFromLibrary(reference) {
+  const parts = splitReference(reference);
+  if (!parts) return '';
+
+  const book = parts.book
+    .replace(/^psalm$/, 'psalms')
+    .replace(/^song of songs$/, 'song of solomon');
+
+  const slug = bookSlug(book);
+  let data = SIMPLE_CACHE.get(slug);
+
+  if (data === undefined) {
+    data = null;
+
+    for (const path of ['../data/simple/', 'data/simple/']) {
+      try {
+        const res = await fetch(path + slug + '.json', { cache: 'no-store' });
+        if (!res.ok) continue;
+        data = await res.json();
+        break;
+      } catch {}
+    }
+
+    SIMPLE_CACHE.set(slug, data);
+  }
+
+  if (!data || !data.verses) return '';
+  return data.verses[parts.chapter + ':' + parts.verse] || '';
+}
+
 async function simpleWording(reference) {
   const res = await fetch(
     'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=bbe'
@@ -663,7 +708,8 @@ async function fillExplanation() {
   } catch {}
 
   if (!filled) {
-    const simple = await simpleWording(reference);
+    let simple = await simpleFromLibrary(reference);
+    if (!simple) simple = await simpleWording(reference);
 
     if (simple) {
       els.simplify.value = simple;

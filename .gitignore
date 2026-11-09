@@ -9,3 +9,4 @@ Thumbs.db
 .pages/
 .vercel
 .env*
+.simple-cache/
