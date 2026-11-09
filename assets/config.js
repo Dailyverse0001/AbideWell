@@ -7,6 +7,15 @@ window.ABIDEWELL = {
   // The admin screen tries these in order, so it works on Vercel and Netlify.
   api: ['/api/post', '/.netlify/functions/post'],
 
+  // Where the verse file lives. Used when posting straight to GitHub
+  // (GitHub Pages has no server, so the browser talks to the GitHub API).
+  github: {
+    owner: 'Dailyverse0001',
+    repo: 'AbideWell',
+    branch: 'main',
+    path: 'public/data/verses.json'
+  },
+
   // Shown only if the archive is ever empty. KJV is public domain.
   fallbackVerse: {
     date: '2026-11-10',

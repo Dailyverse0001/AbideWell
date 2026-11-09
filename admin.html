@@ -28,24 +28,44 @@
   <aside class="rail rail--right" aria-hidden="true">
     <span class="wordmark">Abidewell</span>
     <span class="rail-rule"></span>
-    <span class="issue">Desk</span>
+    <span class="issue">Post</span>
   </aside>
 
   <main class="admin-shell">
     <div class="panel-head" style="margin-top:26px">
-      <h1 style="font-family:var(--serif);font-weight:500;font-size:1.4rem;margin:0">The desk</h1>
-      <button class="pill small" id="logoutBtn" type="button" hidden>Log out</button>
+      <h1 style="font-family:var(--serif);font-weight:500;font-size:1.4rem;margin:0">Post a verse</h1>
+      <button class="pill small" id="logoutBtn" type="button" hidden>Forget this phone</button>
     </div>
 
     <section class="panel login-panel" id="loginView">
-      <h1>Post today's verse</h1>
-      <p class="lede">Enter your passphrase once. This phone will remember it.</p>
+      <h2>Unlock</h2>
+      <p class="lede" id="loginLede">Enter the passphrase to open the desk.</p>
+
       <form id="loginForm">
         <label for="password">Passphrase</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••••" required />
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
         <button class="btn-primary" type="submit">Unlock</button>
       </form>
-      <p class="hint">This is the passphrase you set as <code>ADMIN_PASSWORD</code> when you deployed.</p>
+
+      <p class="hint" id="loginHint"></p>
+
+      <details class="setup" id="setupBox" hidden>
+        <summary>First time on this phone</summary>
+
+        <p class="hint">
+          Type the passphrase above, then paste a GitHub token below. The token is scrambled with that
+          passphrase and kept only on this phone — it is never written into the site.
+        </p>
+
+        <label for="setupToken">GitHub token</label>
+        <input id="setupToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" />
+
+        <p class="hint">
+          Needs <b>Contents: Read and write</b> on the AbideWell repository only.
+        </p>
+
+        <button class="pill" id="connectBtn" type="button">Connect this phone</button>
+      </details>
     </section>
 
     <section id="editorView" hidden>
@@ -98,7 +118,7 @@
           <button class="btn-primary" id="postBtn" type="button">Post verse</button>
           <button class="pill" id="clearBtn" type="button">Clear</button>
         </div>
-        <p class="hint" id="postHint">Your verse goes live in about 30 seconds.</p>
+        <p class="hint" id="postHint">Your verse goes live within a minute.</p>
       </section>
 
       <section class="panel">
