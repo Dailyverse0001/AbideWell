@@ -73,7 +73,10 @@ async function askOpenAiStyle(url, key, model, text) {
     })
   });
 
-  if (!res.ok) throw new Error('model ' + res.status);
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error('model ' + res.status + ' ' + detail.replace(/\s+/g, ' ').slice(0, 160));
+  }
 
   const data = await res.json();
   const choice = data && data.choices && data.choices[0];
