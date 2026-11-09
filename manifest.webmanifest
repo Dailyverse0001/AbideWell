@@ -1,0 +1,25 @@
+{
+  "name": "Abidewell — Daily Verse",
+  "short_name": "Abidewell",
+  "description": "A verse to abide in, every day.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12132b",
+  "theme_color": "#12132b",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

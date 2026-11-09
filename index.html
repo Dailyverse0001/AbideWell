@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Abidewell — A verse to abide in, every day</title>
+  <meta name="description" content="One Bible verse a day. Tap to receive it, keep your streak, and share it." />
+  <meta name="theme-color" content="#12132b" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="theme-night">
+  <div class="sky" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/></svg>
+      </span>
+      <span class="brand-name">abidewell</span>
+    </a>
+    <div class="streak-pill" id="streak" hidden>
+      <span class="streak-flame" aria-hidden="true">🔥</span>
+      <span id="streakCount">1</span>
+      <span class="streak-label">day streak</span>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="verse-card is-sealed" id="verseCard" aria-live="polite">
+      <div class="card-rule" aria-hidden="true"></div>
+      <p class="verse-meta" id="verseMeta">Loading…</p>
+      <blockquote class="verse-body">
+        <p class="verse-text" id="verseText"></p>
+      </blockquote>
+      <div class="verse-foot">
+        <span class="verse-ref" id="verseRef"></span>
+        <span class="verse-version" id="verseVersion"></span>
+      </div>
+      <p class="verse-note" id="verseNote" hidden></p>
+
+      <button class="seal" id="seal" type="button">
+        <span class="seal-ring" aria-hidden="true">✦</span>
+        <span class="seal-text">Tap to receive today's verse</span>
+        <span class="seal-hint">or swipe up</span>
+      </button>
+    </section>
+
+    <p class="swipe-hint" id="swipeHint" hidden>Swipe left or right for earlier verses</p>
+
+    <div class="actions">
+      <button class="pill" id="amenBtn" type="button">
+        <span class="pill-icon" aria-hidden="true">🙏</span><span>Amen</span>
+      </button>
+      <button class="pill" id="shareBtn" type="button">
+        <span class="pill-icon" aria-hidden="true">↗</span><span>Share</span>
+      </button>
+      <a class="pill" href="/archive.html">
+        <span class="pill-icon" aria-hidden="true">☰</span><span>Archive</span>
+      </a>
+    </div>
+
+    <p class="footnote">“Abide in me.” — John 15:4</p>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/assets/config.js"></script>
+  <script src="/assets/app.js" type="module"></script>
+</body>
+</html>
