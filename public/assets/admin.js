@@ -580,7 +580,11 @@ function parseRef(value) {
 async function loadExplain() {
   if (EXPLAIN) return EXPLAIN;
 
-  for (const path of ['../data/explain.json', 'data/explain.json']) {
+  for (const path of [
+    CFG.explain ? CFG.explain + '?t=' + Date.now() : null,
+    '../data/explain.json',
+    'data/explain.json'
+  ].filter(Boolean)) {
     try {
       const res = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) continue;

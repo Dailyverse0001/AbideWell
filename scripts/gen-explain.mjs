@@ -2,33 +2,38 @@
  * verse, using any OpenAI-compatible endpoint.
  *
  *   OPENAI_BASE_URL=https://api.aicredits.in/v1
- *   OPENAI_API_KEY=...
+ *   OPENAI_API_KEY=...            (or AICREDITS_API_KEY)
  *   OPENAI_MODEL=deepseek/deepseek-v4.1-flash-1017
  *
  *   node scripts/gen-explain.mjs              # everything still missing
  *   node scripts/gen-explain.mjs --limit 3     # try three chapters first
  *
- * Reads the whole Bible from .bbe-source.json (run scripts/build-simple.mjs
- * once to create it), writes after every few chapters, and skips anything
- * already explained — so stopping and restarting is safe.
+ * Survives interruptions: it skips anything already explained, saves every few
+ * chapters, and with GEN_COMMIT_EVERY=40 it also commits and pushes as it goes
+ * (used by the GitHub Action so a cancelled job keeps its work).
  */
 import { readFile, writeFile } from 'node:fs/promises';
+import { execSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const target = join(root, 'public', 'data', 'explain.json');
 const source = join(root, '.bbe-source.json');
+const SOURCE_URL =
+  'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_bbe.json';
 
 const BASE = (process.env.OPENAI_BASE_URL || '').replace(/\/$/, '');
-const KEY = process.env.OPENAI_API_KEY || '';
+const KEY = process.env.OPENAI_API_KEY || process.env.AICREDITS_API_KEY || '';
 const MODEL = process.env.OPENAI_MODEL || '';
 
 const limitIndex = process.argv.indexOf('--limit');
 const LIMIT = limitIndex > -1 ? Number(process.argv[limitIndex + 1]) || 0 : 0;
 
+const CONCURRENCY = Number(process.env.GEN_CONCURRENCY || 4);
+const COMMIT_EVERY = Number(process.env.GEN_COMMIT_EVERY || 0);
 const CHUNK = 40;
-const PAUSE = 400;
+const PAUSE = 250;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -79,8 +84,7 @@ async function ask(lines) {
   if (start === -1 || end <= start) return {};
 
   try {
-    const parsed = JSON.parse(content.slice(start, end + 1));
-    return parsed.explanations || {};
+    return JSON.parse(content.slice(start, end + 1)).explanations || {};
   } catch {
     return {};
   }
@@ -91,31 +95,46 @@ async function save(store) {
   await writeFile(target, JSON.stringify(store, null, 2) + '\n', 'utf8');
 }
 
+function gitCommit(count) {
+  try {
+    execSync('git add public/data/explain.json', { cwd: root, stdio: 'ignore' });
+    execSync('git -c user.name=abidewell -c user.email=actions@users.noreply.github.com commit -q -m "Explanations: ' + count + ' verses"', {
+      cwd: root,
+      stdio: 'ignore'
+    });
+    execSync('git push --quiet', { cwd: root, stdio: 'ignore' });
+    console.log('committed ' + count + ' entries');
+  } catch {
+    /* nothing changed, or no push rights — keep going */
+  }
+}
+
+async function loadBible() {
+  try {
+    return JSON.parse(await readFile(source, 'utf8'));
+  } catch {}
+
+  const res = await fetch(SOURCE_URL);
+  if (!res.ok) throw new Error('Could not download the BBE text (' + res.status + ').');
+  const text = await res.text();
+  await writeFile(source, text, 'utf8');
+  return JSON.parse(text);
+}
+
 async function main() {
   if (!BASE || !KEY || !MODEL) {
-    console.error('Set OPENAI_BASE_URL, OPENAI_API_KEY and OPENAI_MODEL.');
+    console.error('Set OPENAI_BASE_URL, OPENAI_API_KEY (or AICREDITS_API_KEY) and OPENAI_MODEL.');
     process.exit(1);
   }
 
   const store = JSON.parse(await readFile(target, 'utf8'));
   store.entries = store.entries || {};
 
-  const bible = JSON.parse(await readFile(source, 'utf8'));
+  const bible = await loadBible();
 
-  let chapters = 0;
-  let added = 0;
-  let failed = 0;
-
+  const tasks = [];
   for (const book of bible) {
     for (let c = 0; c < book.chapters.length; c += 1) {
-      if (LIMIT && chapters >= LIMIT) {
-        await save(store);
-        console.log('stopped at limit. entries: ' + Object.keys(store.entries).length + ', added: ' + added);
-        return;
-      }
-
-      chapters += 1;
-
       const wanted = book.chapters[c]
         .map((text, i) => ({
           ref: book.name + ' ' + (c + 1) + ':' + (i + 1),
@@ -123,10 +142,25 @@ async function main() {
         }))
         .filter((v) => v.text && !store.entries[normalise(v.ref)]);
 
-      if (!wanted.length) continue;
+      if (wanted.length) tasks.push({ book: book.name, chapter: c + 1, wanted });
+      if (LIMIT && tasks.length >= LIMIT) break;
+    }
+    if (LIMIT && tasks.length >= LIMIT) break;
+  }
 
-      for (let i = 0; i < wanted.length; i += CHUNK) {
-        const slice = wanted.slice(i, i + CHUNK);
+  console.log('chapters to process: ' + tasks.length);
+
+  let done = 0;
+  let added = 0;
+  let failed = 0;
+  let sinceCommit = 0;
+
+  async function worker() {
+    while (tasks.length) {
+      const task = tasks.shift();
+
+      for (let i = 0; i < task.wanted.length; i += CHUNK) {
+        const slice = task.wanted.slice(i, i + CHUNK);
         const lines = slice.map((v) => v.ref + ' — ' + v.text);
 
         try {
@@ -141,24 +175,37 @@ async function main() {
           }
         } catch (error) {
           failed += 1;
-          console.error(book.name + ' ' + (c + 1) + ': ' + error.message);
+          console.error(task.book + ' ' + task.chapter + ': ' + error.message);
         }
 
         await sleep(PAUSE);
       }
 
-      if (chapters % 5 === 0) {
+      done += 1;
+      sinceCommit += 1;
+
+      if (done % 5 === 0) {
         await save(store);
         console.log(
-          book.name + ' ' + (c + 1) + ' — entries ' + Object.keys(store.entries).length +
-            ', added ' + added + ', failed ' + failed
+          task.book + ' ' + task.chapter + ' — entries ' + Object.keys(store.entries).length +
+            ', added ' + added + ', failed ' + failed + ', chapters left ' + tasks.length
         );
+      }
+
+      if (COMMIT_EVERY && sinceCommit >= COMMIT_EVERY) {
+        sinceCommit = 0;
+        await save(store);
+        gitCommit(Object.keys(store.entries).length);
       }
     }
   }
 
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
   await save(store);
   console.log('done. entries ' + Object.keys(store.entries).length + ', added ' + added + ', failed ' + failed);
+
+  if (COMMIT_EVERY) gitCommit(Object.keys(store.entries).length);
 }
 
 main();

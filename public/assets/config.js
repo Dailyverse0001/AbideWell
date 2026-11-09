@@ -20,6 +20,11 @@ window.ABIDEWELL = {
   // rebuild: the page picks the new verse up on the next load.
   data: '/api/verses',
 
+  // The explanation library. Read from GitHub so a batch that finishes in
+  // CI shows up without a redeploy.
+  explain:
+    'https://raw.githubusercontent.com/Dailyverse0001/AbideWell/main/public/data/explain.json',
+
   // Shown only if the archive is ever empty. KJV is public domain.
   fallbackVerse: {
     date: '2026-11-10',

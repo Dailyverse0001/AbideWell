@@ -1,0 +1,55 @@
+name: Generate verse explanations
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "How many chapters to process (0 = all remaining)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: explain
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Write explanations
+        env:
+          OPENAI_BASE_URL: https://api.aicredits.in/v1
+          OPENAI_MODEL: deepseek/deepseek-v4.1-flash-1017
+          OPENAI_API_KEY: ${{ secrets.AICREDITS_API_KEY }}
+          GEN_CONCURRENCY: "6"
+          GEN_COMMIT_EVERY: "40"
+        run: |
+          if [ "${{ inputs.limit }}" = "0" ] || [ -z "${{ inputs.limit }}" ]; then
+            node scripts/gen-explain.mjs
+          else
+            node scripts/gen-explain.mjs --limit "${{ inputs.limit }}"
+          fi
+
+      - name: Commit anything left over
+        if: always()
+        run: |
+          git config user.name "abidewell"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/data/explain.json
+          git commit -m "Explanations: update" || echo "nothing to commit"
+          git push || echo "nothing to push"
