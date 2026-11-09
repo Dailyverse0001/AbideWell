@@ -688,11 +688,20 @@ async function loadList() {
       return;
     }
 
-    const res = await fetch('../data/verses.json?t=' + Date.now(), { cache: 'no-store' });
-    if (res.ok) {
+    const sources = [
+      CFG.data ? CFG.data + '?t=' + Date.now() : null,
+      '../data/verses.json?t=' + Date.now()
+    ].filter(Boolean);
+
+    for (const source of sources) {
+      const res = await fetch(source, { cache: 'no-store' });
+      if (!res.ok) continue;
       const data = await res.json();
-      latestVerses = Array.isArray(data) ? data : [];
-      renderList(latestVerses);
+      if (Array.isArray(data)) {
+        latestVerses = data;
+        renderList(latestVerses);
+        return;
+      }
     }
   } catch {
     els.verseList.innerHTML = '<p class="empty">Could not load the list.</p>';
