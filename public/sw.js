@@ -1,5 +1,5 @@
 /* Abidewell — offline shell. Bump CACHE when you change the design. */
-const CACHE = 'abidewell-v3';
+const CACHE = 'abidewell-v4';
 const ROOT = self.registration.scope;
 
 const SHELL = [
@@ -60,7 +60,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* Pages and assets: cache first, then network. */
+  /* Verse data, pages, styles and scripts: network first, cache as fallback. */
+  const fresh = request.mode === 'navigate' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js');
+
+  if (fresh) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((hit) => {
+            if (hit) return hit;
+            if (request.mode === 'navigate') return caches.match(new URL('index.html', ROOT).href);
+            return Response.error();
+          })
+        )
+    );
+    return;
+  }
+
+  /* Images and fonts: cache first. */
   event.respondWith(
     caches.match(request).then((hit) => {
       if (hit) return hit;
