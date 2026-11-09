@@ -1,3 +1,4 @@
+
 /* ==========================================================================
    Abidewell — styles
    A warm, reverent daily-verse interface. Mobile first.
@@ -845,3 +846,5 @@ select option { background: #1a1830; color: #f6f1e5; }
   .grid-2 { grid-template-columns: 1fr; }
   .streak-label { display: none; }
 }
+
+/* =============================================
