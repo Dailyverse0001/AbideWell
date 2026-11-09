@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css?v=3" />
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
   <div class="paper" aria-hidden="true"></div>
@@ -52,9 +52,22 @@
         <span class="citation-version" id="verseVersion"></span>
       </p>
 
-      <p class="gloss" id="verseNote" hidden></p>
+      <p class="whisper" id="whisper"></p>
 
+      <p class="gloss" id="verseNote" hidden></p>
     </article>
+
+    <section class="simplify" id="simplifyBlock" hidden>
+      <button class="simplify-toggle" id="simplifyBtn" type="button" aria-expanded="false" aria-controls="simplifyPanel">
+        <span class="simplify-mark" aria-hidden="true">✦</span>
+        <span>Simplify this verse</span>
+        <span class="simplify-chevron" aria-hidden="true">+</span>
+      </button>
+      <div class="simplify-panel" id="simplifyPanel" hidden>
+        <p class="simplify-label">In simple words</p>
+        <p class="simplify-text" id="simplifyText"></p>
+      </div>
+    </section>
 
     <div class="instruments">
       <div class="instrument-pair">
@@ -80,87 +93,16 @@
     <p class="streak" id="streak" hidden>
       <span class="streak-word">Kept</span>
       <span class="streak-count" id="streakCount">1</span>
-      <span class="streak-word">days</span>
+      <span class="streak-word" id="streakUnit">day</span>
       <span class="streak-marks" id="streakMarks" aria-hidden="true"></span>
     </p>
 
     <p class="colophon">Soli Deo gloria <span aria-hidden="true">·</span> <span id="colophonDate"></span></p>
-
-    <section class="explainer" aria-labelledby="devTitle">
-      <details class="dev-note">
-        <summary class="dev-summary">
-          <span class="dev-kicker">For the developer</span>
-          <span class="dev-title" id="devTitle">How this page works, in plain words</span>
-          <span class="dev-chevron" aria-hidden="true">+</span>
-        </summary>
-
-        <div class="dev-body">
-          <p class="dev-lede">No jargon. If you can send a WhatsApp message, you can understand this.</p>
-
-          <ol class="dev-steps">
-            <li>
-              <b>Every verse is one line in a small list.</b>
-              That list is a file called <code>verses.json</code>, kept inside the GitHub project.
-            </li>
-            <li>
-              <b>Your sister posts from her phone.</b>
-              She opens <code>/admin</code>, types the reference and the verse, and taps Post.
-            </li>
-            <li>
-              <b>A tiny helper does the filing.</b>
-              Your host (Vercel or Netlify) checks her password, then edits that list in GitHub for her.
-              She never opens GitHub.
-            </li>
-            <li>
-              <b>The page rebuilds itself.</b>
-              GitHub tells the host, the host rebuilds, and about 30 seconds later the new verse is live.
-            </li>
-            <li>
-              <b>Nothing goes blank.</b>
-              The page always shows the newest verse dated today or earlier. Skip a day, yesterday stays.
-            </li>
-            <li>
-              <b>The streak is private.</b>
-              It is counted in each visitor's own browser. No accounts, no tracking, no database.
-            </li>
-          </ol>
-
-          <details class="dev-more">
-            <summary>The technical version</summary>
-            <div class="dev-tech">
-              <p>
-                Static site in <code>public/</code>. Content in <code>public/data/verses.json</code>,
-                read at runtime with <code>cache: no-store</code>. Selection rule:
-                <code>date &lt;= today (Asia/Kolkata)</code>, newest first.
-              </p>
-              <p>
-                Write path: <code>POST /api/post</code> (Vercel) or
-                <code>/.netlify/functions/post</code> (Netlify). The handler compares a bearer
-                passphrase against <code>ADMIN_PASSWORD</code> in constant time, validates the
-                payload, reads the file through the GitHub Contents API, upserts by date, and
-                commits it back with a fine-grained token scoped to one repo.
-              </p>
-              <p>
-                Secrets stay server-side: <code>ADMIN_PASSWORD</code>, <code>GITHUB_TOKEN</code>,
-                <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>GITHUB_BRANCH</code>,
-                <code>GITHUB_PATH</code>. Nothing secret is shipped to the browser.
-              </p>
-              <p>
-                The share image is drawn on a canvas at 1080×1350 and handed to
-                <code>navigator.share</code> when files are supported, otherwise downloaded.
-                The copy button writes <code>text/plain</code> to the clipboard with a
-                <code>document.execCommand</code> fallback for older Android browsers.
-              </p>
-            </div>
-          </details>
-        </div>
-      </details>
-    </section>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="assets/config.js?v=3"></script>
-  <script src="assets/app.js?v=3" type="module"></script>
+  <script src="assets/config.js"></script>
+  <script src="assets/app.js" type="module"></script>
 </body>
 </html>

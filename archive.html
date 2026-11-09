@@ -4,37 +4,40 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Archive — Abidewell</title>
-  <meta name="description" content="Every daily verse, kept." />
-  <meta name="theme-color" content="#12132b" />
+  <meta name="description" content="Every daily reading, kept." />
+  <meta name="theme-color" content="#ede4d3" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
-<body class="theme-night">
-  <div class="sky" aria-hidden="true">
-    <span class="orb orb-1"></span>
-    <span class="orb orb-2"></span>
-    <span class="orb orb-3"></span>
-  </div>
+<body>
+  <div class="paper" aria-hidden="true"></div>
+  <div class="burst" aria-hidden="true"></div>
 
-  <header class="topbar">
-    <a class="brand" href="./">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/></svg>
-      </span>
-      <span class="brand-name">abidewell</span>
-    </a>
-    <a class="pill ghost small" href="./">Today</a>
-  </header>
+  <nav class="rail rail--left" aria-label="Sections">
+    <a class="rail-link" href="./">Today</a>
+    <span class="rail-dot" aria-hidden="true"></span>
+    <a class="rail-link is-current" href="archive.html">Archive</a>
+    <span class="rail-dot" aria-hidden="true"></span>
+    <a class="rail-link" href="admin.html">Post</a>
+  </nav>
 
-  <main class="archive-shell">
-    <div class="page-head">
-      <h1>Archive</h1>
-      <p class="lede">Every verse, kept.</p>
-    </div>
+  <aside class="rail rail--right" aria-hidden="true">
+    <span class="wordmark">Abidewell</span>
+    <span class="rail-rule"></span>
+    <span class="issue">Archive</span>
+  </aside>
+
+  <main class="archive-page">
+    <header class="archive-head">
+      <p class="eyebrow">The archive</p>
+      <h1>Every reading,<br />kept.</h1>
+      <p class="archive-count" id="archiveCount">—</p>
+    </header>
+
     <div class="archive-list" id="archiveList">
       <p class="empty">Loading…</p>
     </div>
