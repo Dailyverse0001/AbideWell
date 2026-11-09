@@ -6,24 +6,24 @@
   <title>Abidewell — a verse for today</title>
   <meta name="description" content="One verse, set like a printed broadside. A new reading every day." />
   <meta name="theme-color" content="#ede4d3" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/styles.css" />
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
   <div class="paper" aria-hidden="true"></div>
   <div class="burst" aria-hidden="true"></div>
 
   <nav class="rail rail--left" aria-label="Sections">
-    <a class="rail-link is-current" href="/">Today</a>
+    <a class="rail-link is-current" href="./">Today</a>
     <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/archive.html">Archive</a>
+    <a class="rail-link" href="archive.html">Archive</a>
     <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/admin.html">Post</a>
+    <a class="rail-link" href="admin.html">Post</a>
   </nav>
 
   <aside class="rail rail--right" aria-hidden="true">
@@ -63,14 +63,24 @@
     </article>
 
     <div class="instruments">
-      <button class="instrument" id="prevBtn" type="button" aria-label="Earlier verse">
-        <span aria-hidden="true">←</span> earlier
-      </button>
-      <button class="instrument instrument--amen" id="amenBtn" type="button">Amen</button>
-      <button class="instrument" id="nextBtn" type="button" aria-label="Later verse">
-        later <span aria-hidden="true">→</span>
-      </button>
-      <button class="instrument" id="shareBtn" type="button">Share</button>
+      <div class="instrument-pair">
+        <button class="instrument" id="prevBtn" type="button">
+          <span aria-hidden="true">←</span> earlier
+        </button>
+        <button class="instrument" id="nextBtn" type="button">
+          later <span aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <div class="instrument-pair">
+        <button class="instrument instrument--amen" id="amenBtn" type="button">Amen</button>
+        <button class="instrument" id="copyBtn" type="button">
+          <span aria-hidden="true">⧉</span> copy
+        </button>
+        <button class="instrument" id="shareBtn" type="button">
+          <span aria-hidden="true">↗</span> share
+        </button>
+      </div>
     </div>
 
     <p class="streak" id="streak" hidden>
@@ -81,11 +91,82 @@
     </p>
 
     <p class="colophon">Soli Deo gloria <span aria-hidden="true">·</span> <span id="colophonDate"></span></p>
+
+    <section class="explainer" aria-labelledby="devTitle">
+      <details class="dev-note">
+        <summary class="dev-summary">
+          <span class="dev-kicker">For the developer</span>
+          <span class="dev-title" id="devTitle">How this page works, in plain words</span>
+          <span class="dev-chevron" aria-hidden="true">+</span>
+        </summary>
+
+        <div class="dev-body">
+          <p class="dev-lede">No jargon. If you can send a WhatsApp message, you can understand this.</p>
+
+          <ol class="dev-steps">
+            <li>
+              <b>Every verse is one line in a small list.</b>
+              That list is a file called <code>verses.json</code>, kept inside the GitHub project.
+            </li>
+            <li>
+              <b>Your sister posts from her phone.</b>
+              She opens <code>/admin</code>, types the reference and the verse, and taps Post.
+            </li>
+            <li>
+              <b>A tiny helper does the filing.</b>
+              Your host (Vercel or Netlify) checks her password, then edits that list in GitHub for her.
+              She never opens GitHub.
+            </li>
+            <li>
+              <b>The page rebuilds itself.</b>
+              GitHub tells the host, the host rebuilds, and about 30 seconds later the new verse is live.
+            </li>
+            <li>
+              <b>Nothing goes blank.</b>
+              The page always shows the newest verse dated today or earlier. Skip a day, yesterday stays.
+            </li>
+            <li>
+              <b>The streak is private.</b>
+              It is counted in each visitor's own browser. No accounts, no tracking, no database.
+            </li>
+          </ol>
+
+          <details class="dev-more">
+            <summary>The technical version</summary>
+            <div class="dev-tech">
+              <p>
+                Static site in <code>public/</code>. Content in <code>public/data/verses.json</code>,
+                read at runtime with <code>cache: no-store</code>. Selection rule:
+                <code>date &lt;= today (Asia/Kolkata)</code>, newest first.
+              </p>
+              <p>
+                Write path: <code>POST /api/post</code> (Vercel) or
+                <code>/.netlify/functions/post</code> (Netlify). The handler compares a bearer
+                passphrase against <code>ADMIN_PASSWORD</code> in constant time, validates the
+                payload, reads the file through the GitHub Contents API, upserts by date, and
+                commits it back with a fine-grained token scoped to one repo.
+              </p>
+              <p>
+                Secrets stay server-side: <code>ADMIN_PASSWORD</code>, <code>GITHUB_TOKEN</code>,
+                <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>GITHUB_BRANCH</code>,
+                <code>GITHUB_PATH</code>. Nothing secret is shipped to the browser.
+              </p>
+              <p>
+                The share image is drawn on a canvas at 1080×1350 and handed to
+                <code>navigator.share</code> when files are supported, otherwise downloaded.
+                The copy button writes <code>text/plain</code> to the clipboard with a
+                <code>document.execCommand</code> fallback for older Android browsers.
+              </p>
+            </div>
+          </details>
+        </div>
+      </details>
+    </section>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="/assets/config.js"></script>
-  <script src="/assets/app.js" type="module"></script>
+  <script src="assets/config.js"></script>
+  <script src="assets/app.js" type="module"></script>
 </body>
 </html>
