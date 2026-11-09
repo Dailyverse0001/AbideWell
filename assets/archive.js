@@ -44,13 +44,22 @@ async function load() {
   const today = todayISO();
   let verses = [];
 
-  try {
-    const res = await fetch('https://raw.githubusercontent.com/Dailyverse0001/AbideWell/main/public/data/verses.json?t=' + Date.now(), { cache: 'no-store' });
-    if (res.ok) {
+  const sources = [
+    CFG.data ? CFG.data + '?t=' + Date.now() : null,
+    'https://raw.githubusercontent.com/Dailyverse0001/AbideWell/main/public/data/verses.json?t=' + Date.now()
+  ].filter(Boolean);
+
+  for (const source of sources) {
+    try {
+      const res = await fetch(source, { cache: 'no-store' });
+      if (!res.ok) continue;
       const data = await res.json();
-      if (Array.isArray(data)) verses = data;
-    }
-  } catch {}
+      if (Array.isArray(data)) {
+        verses = data;
+        break;
+      }
+    } catch {}
+  }
 
   verses = verses
     .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && typeof v.text === 'string')

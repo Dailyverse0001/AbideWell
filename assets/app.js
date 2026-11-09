@@ -148,14 +148,21 @@ function buildTicks() {
 /* ------------------------------------------------------------------- data */
 
 async function loadVerses() {
-  try {
-    const res = await fetch('https://raw.githubusercontent.com/Dailyverse0001/AbideWell/main/public/data/verses.json?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('bad status');
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
+  const sources = [
+    CFG.data ? CFG.data + '?t=' + Date.now() : null,
+    'https://raw.githubusercontent.com/Dailyverse0001/AbideWell/main/public/data/verses.json?t=' + Date.now()
+  ].filter(Boolean);
+
+  for (const source of sources) {
+    try {
+      const res = await fetch(source, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    } catch {}
   }
+
+  return [];
 }
 
 function usable(verses) {
