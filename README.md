@@ -137,6 +137,7 @@ Every verse is one row in `public/data/verses.json`:
   "text": "The LORD is my shepherd; I shall not want.",
   "version": "KJV",
   "note": "Optional one-line reflection",
+  "simplify": "Optional plain-language explanation shown by the Simplify button",
   "postedAt": "2026-11-10T06:00:00.000Z"
 }
 ```

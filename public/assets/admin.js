@@ -15,6 +15,7 @@ const els = {
   version: $('#version'),
   text: $('#text'),
   note: $('#note'),
+  simplify: $('#simplify'),
   autoFillBtn: $('#autoFillBtn'),
   postBtn: $('#postBtn'),
   clearBtn: $('#clearBtn'),
@@ -166,7 +167,8 @@ function currentVerse() {
     reference: els.reference.value.trim(),
     version: els.version.value,
     text: els.text.value.trim(),
-    note: els.note.value.trim()
+    note: els.note.value.trim(),
+    simplify: els.simplify.value.trim()
   };
 }
 
@@ -187,7 +189,7 @@ function updatePreview() {
 }
 
 ['input', 'change'].forEach((eventName) => {
-  [els.date, els.reference, els.version, els.text, els.note].forEach((field) => {
+  [els.date, els.reference, els.version, els.text, els.note, els.simplify].forEach((field) => {
     field.addEventListener(eventName, updatePreview);
   });
 });
@@ -197,6 +199,7 @@ function resetForm() {
   els.reference.value = '';
   els.text.value = '';
   els.note.value = '';
+  els.simplify.value = '';
   els.version.value = 'NKJV';
   updatePreview();
   setStatus('Draft');
@@ -336,6 +339,7 @@ function renderList(verses) {
       els.version.value = verse.version || 'NKJV';
       els.text.value = verse.text || '';
       els.note.value = verse.note || '';
+      els.simplify.value = verse.simplify || '';
       updatePreview();
       setStatus('Editing');
       window.scrollTo({ top: 0, behavior: 'smooth' });

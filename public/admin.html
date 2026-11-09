@@ -5,35 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Post a verse — Abidewell</title>
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="theme-color" content="#12132b" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#ede4d3" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
 </head>
-<body class="theme-night admin-body">
-  <div class="sky" aria-hidden="true">
-    <span class="orb orb-1"></span>
-    <span class="orb orb-2"></span>
-    <span class="orb orb-3"></span>
-  </div>
+<body class="admin-body">
+  <div class="paper" aria-hidden="true"></div>
+  <div class="burst" aria-hidden="true"></div>
 
-  <header class="topbar">
-    <a class="brand" href="./">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/></svg>
-      </span>
-      <span class="brand-name">abidewell</span>
-    </a>
-    <div class="topbar-right">
-      <a class="pill ghost small" href="./">View site</a>
-      <button class="pill ghost small" id="logoutBtn" type="button" hidden>Log out</button>
-    </div>
-  </header>
+  <nav class="rail rail--left" aria-label="Sections">
+    <a class="rail-link" href="/">Today</a>
+    <span class="rail-dot" aria-hidden="true"></span>
+    <a class="rail-link" href="/archive.html">Archive</a>
+    <span class="rail-dot" aria-hidden="true"></span>
+    <a class="rail-link is-current" href="/admin.html">Post</a>
+  </nav>
+
+  <aside class="rail rail--right" aria-hidden="true">
+    <span class="wordmark">Abidewell</span>
+    <span class="rail-rule"></span>
+    <span class="issue">Desk</span>
+  </aside>
 
   <main class="admin-shell">
+    <div class="panel-head" style="margin-top:26px">
+      <h1 style="font-family:var(--serif);font-weight:500;font-size:1.4rem;margin:0">The desk</h1>
+      <button class="pill small" id="logoutBtn" type="button" hidden>Log out</button>
+    </div>
+
     <section class="panel login-panel" id="loginView">
       <h1>Post today's verse</h1>
       <p class="lede">Enter your passphrase once. This phone will remember it.</p>
@@ -48,7 +51,7 @@
     <section id="editorView" hidden>
       <section class="panel">
         <div class="panel-head">
-          <h1 id="formTitle">Today's verse</h1>
+          <h2>Today's reading</h2>
           <span class="chip" id="statusChip">Draft</span>
         </div>
 
@@ -79,7 +82,7 @@
           <input id="reference" placeholder="Psalm 23:1" autocomplete="off" />
           <button class="pill" id="autoFillBtn" type="button">Auto-fill</button>
         </div>
-        <p class="hint">Auto-fill pulls the text in KJV from a free Bible API. You can edit it to match your version.</p>
+        <p class="hint">Auto-fill pulls the text in KJV from a free Bible API. Edit it to match your version.</p>
 
         <label for="text">Verse text</label>
         <textarea id="text" rows="7" placeholder="Paste or type the verse…"></textarea>
@@ -87,16 +90,20 @@
         <label for="note">Short reflection <span class="muted">(optional)</span></label>
         <input id="note" maxlength="240" placeholder="One line to sit with today" />
 
+        <label for="simplify">Simple explanation <span class="muted">(optional)</span></label>
+        <textarea id="simplify" rows="3" maxlength="800" placeholder="Explain this verse in plain words, the way you would tell a friend."></textarea>
+        <p class="hint">This is what the “Simplify this verse” button shows.</p>
+
         <div class="panel-actions">
           <button class="btn-primary" id="postBtn" type="button">Post verse</button>
-          <button class="pill ghost" id="clearBtn" type="button">Clear</button>
+          <button class="pill" id="clearBtn" type="button">Clear</button>
         </div>
         <p class="hint" id="postHint">Your verse goes live in about 30 seconds.</p>
       </section>
 
       <section class="panel">
         <h2>Preview</h2>
-        <div class="preview-card">
+        <div class="preview-card" style="margin-top:14px">
           <p class="preview-meta" id="pvMeta">—</p>
           <p class="preview-text" id="pvText">Your verse will appear here.</p>
           <p class="preview-ref" id="pvRef"></p>
@@ -105,8 +112,8 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Recent verses</h2>
-          <button class="pill ghost small" id="refreshBtn" type="button">Refresh</button>
+          <h2>Recent readings</h2>
+          <button class="pill small" id="refreshBtn" type="button">Refresh</button>
         </div>
         <div class="list" id="verseList">
           <p class="empty">Loading…</p>
@@ -117,7 +124,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="assets/config.js"></script>
-  <script src="assets/admin.js" type="module"></script>
+  <script src="/assets/config.js"></script>
+  <script src="/assets/admin.js" type="module"></script>
 </body>
 </html>

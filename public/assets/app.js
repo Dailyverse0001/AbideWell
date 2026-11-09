@@ -1,27 +1,90 @@
-/* Abidewell — today's verse */
+/* Abidewell — today's reading */
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
-  body: document.body,
-  card: $('#verseCard'),
-  seal: $('#seal'),
+  ticks: $('#ticks'),
+  reading: $('#reading'),
   meta: $('#verseMeta'),
   text: $('#verseText'),
   ref: $('#verseRef'),
   version: $('#verseVersion'),
   note: $('#verseNote'),
+  whisper: $('#whisper'),
+  issue: $('#issueNo'),
+  simplifyBlock: $('#simplifyBlock'),
+  simplifyBtn: $('#simplifyBtn'),
+  simplifyPanel: $('#simplifyPanel'),
+  simplifyText: $('#simplifyText'),
+  prev: $('#prevBtn'),
+  next: $('#nextBtn'),
+  amen: $('#amenBtn'),
+  copy: $('#copyBtn'),
+  share: $('#shareBtn'),
   streak: $('#streak'),
   streakCount: $('#streakCount'),
-  swipeHint: $('#swipeHint'),
-  amenBtn: $('#amenBtn'),
-  shareBtn: $('#shareBtn'),
+  streakMarks: $('#streakMarks'),
+  issue: $('#issueNo'),
+  colophon: $('#colophonDate'),
   toast: $('#toast')
 };
 
-const STREAK_KEY = 'abidewell.streak.v1';
-const AMEN_KEY = 'abidewell.amen.v1';
-const state = { verses: [], index: 0, today: '', revealed: false };
+const STREAK_KEY = 'abidewell.streak.v2';
+const AMEN_KEY = 'abidewell.amen.v2';
+const state = { verses: [], index: 0, today: '' };
+
+const WHISPERS = [
+  'An angel is reading this one with you.',
+  'This verse was picked before you woke up.',
+  'Read it once for the words. Twice for the meaning.',
+  'No quiz at the end.',
+  'Somebody prayed for you this morning.',
+  'Heaven is not in a hurry. You do not have to be either.',
+  'You opened this at exactly the right time.',
+  'This one is better out loud.',
+  'Coffee first is allowed.',
+  'You are not behind.',
+  'The angels are not tired of this verse.',
+  'Pajamas are acceptable reading attire.',
+  'If you only remember one line, make it the last one.',
+  'Take a screenshot. It is yours now.',
+  'This verse has been waiting for you.',
+  'There is no wrong way to read it.',
+  'Breathe. Then begin.',
+  'Underline it if you like. Nobody is grading.',
+  'Some days the verse reads you back.',
+  'You are allowed to sit here a while.',
+  'This one is short. Let it be enough.',
+  'The door is open. You do not have to knock twice.',
+  'Someone needed this today. Probably you.',
+  'It is fine to read it twice and still not get it.',
+  'God is not annoyed that you are here.',
+  'A quiet minute counts.',
+  'This verse does not expire.',
+  'You can come back to it tonight.',
+  'The words are older than your worries.',
+  'No rush. The verse will wait.',
+  'Read it like a letter, not a notice.',
+  'There is a seat here with your name on it.',
+  'You do not have to feel it to believe it.',
+  'Small verse. Big door.',
+  'Somebody is glad you opened this.',
+  'This is a good place to put your phone down after.',
+  'The first word is a door. Walk in.',
+  'It is okay if today this is the only thing you do.',
+  'Angels sing badly. You can still sing.',
+  'Mercy does not check the time.',
+  'You were not a mistake at 6 a.m. either.',
+  'This one is a lamp, not a spotlight.',
+  'Keep it in your pocket for later.',
+  'Read it slowly. The good parts are small.',
+  'He is not tired of starting over with you.',
+  'You are allowed to begin again at any hour.',
+  'This verse has no fine print.',
+  'If it made you pause, that was the point.',
+  'Somebody left the light on for you.',
+  'Come as you are. Stay a minute.'
+];
 
 /* ------------------------------------------------------------------ dates */
 
@@ -40,40 +103,46 @@ function daysBetween(fromISO, toISO) {
   return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
 }
 
+function dayOfYear(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const start = Date.UTC(y, 0, 1);
+  const now = Date.UTC(y, m - 1, d);
+  return Math.floor((now - start) / 86400000) + 1;
+}
+
+function prettyDate(iso, style) {
+  const d = new Date(iso + 'T12:00:00');
+  if (style === 'long') {
+    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+  }
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(d);
+}
+
 function labelForDate(iso) {
   if (iso === state.today) return 'Today';
   const diff = daysBetween(iso, state.today);
   if (diff === 1) return 'Yesterday';
-  const d = new Date(iso + 'T12:00:00');
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  }).format(d);
+  return prettyDate(iso);
 }
 
-/* ------------------------------------------------------------------ theme */
+/* ------------------------------------------------------------------- halo */
 
-function applyTheme() {
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: CFG.timeZone,
-      hour: '2-digit',
-      hourCycle: 'h23'
-    }).format(new Date())
-  );
+function buildTicks() {
+  const count = 72;
+  const active = dayOfYear(state.today) % count;
+  const frag = document.createDocumentFragment();
 
-  let theme = 'night';
-  if (hour >= 5 && hour < 8) theme = 'dawn';
-  else if (hour >= 8 && hour < 17) theme = 'day';
-  else if (hour >= 17 && hour < 20) theme = 'dusk';
+  for (let i = 0; i < count; i += 1) {
+    const tick = document.createElement('span');
+    tick.className = 'tick' + (i === active ? ' is-today' : '');
+    tick.style.transform = 'rotate(' + (i * (360 / count)) + 'deg)';
+    tick.appendChild(document.createElement('i'));
+    frag.appendChild(tick);
+  }
 
-  els.body.classList.remove('theme-dawn', 'theme-day', 'theme-dusk', 'theme-night');
-  els.body.classList.add('theme-' + theme);
-
-  const colors = { dawn: '#f9e7d4', day: '#eaf6ff', dusk: '#54325f', night: '#12132b' };
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', colors[theme]);
+  els.ticks.replaceChildren(frag);
+  els.issue.textContent = String(dayOfYear(state.today)).padStart(3, '0');
+  els.colophon.textContent = prettyDate(state.today, 'long');
 }
 
 /* ------------------------------------------------------------------- data */
@@ -96,69 +165,91 @@ function usable(verses) {
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }
 
-/* ---------------------------------------------------------------- rendering */
+/* -------------------------------------------------------------- rendering */
+
+function current() {
+  return state.verses[state.index] || CFG.fallbackVerse;
+}
 
 function render() {
-  const verse = state.verses[state.index];
+  const verse = current();
 
-  if (!verse) {
-    els.meta.textContent = 'Welcome';
-    els.text.textContent = CFG.fallbackVerse.text;
-    els.ref.textContent = CFG.fallbackVerse.reference;
-    els.version.textContent = CFG.fallbackVerse.version;
-    setNote(CFG.fallbackVerse.note);
-    reveal(true);
-    return;
-  }
-
-  els.meta.textContent = labelForDate(verse.date);
+  els.meta.textContent = verse.date === state.today ? 'Today' : labelForDate(verse.date);
   els.text.textContent = verse.text;
   els.ref.textContent = verse.reference;
   els.version.textContent = verse.version || '';
-  setNote(verse.note);
 
-  els.swipeHint.hidden = state.verses.length < 2;
-}
-
-function setNote(note) {
-  if (note && String(note).trim()) {
-    els.note.textContent = String(note).trim();
+  if (verse.note && String(verse.note).trim()) {
+    els.note.textContent = String(verse.note).trim();
     els.note.hidden = false;
   } else {
     els.note.textContent = '';
     els.note.hidden = true;
   }
+
+  els.prev.disabled = state.index >= state.verses.length - 1;
+  els.next.disabled = state.index <= 0;
+
+  setSimplify(verse.simplify);
+  setWhisper();
 }
 
-function reveal(silent) {
-  if (state.revealed) return;
-  state.revealed = true;
-  els.card.classList.remove('is-sealed');
-  if (!silent) {
-    try { navigator.vibrate && navigator.vibrate(12); } catch {}
+function setSimplify(value) {
+  const text = value && String(value).trim();
+
+  if (!text) {
+    els.simplifyBlock.hidden = true;
+    els.simplifyPanel.hidden = true;
+    els.simplifyBtn.setAttribute('aria-expanded', 'false');
+    els.simplifyText.textContent = '';
+    return;
   }
+
+  els.simplifyText.textContent = text;
+  els.simplifyBlock.hidden = false;
+  els.simplifyPanel.hidden = true;
+  els.simplifyBtn.setAttribute('aria-expanded', 'false');
+}
+
+function setWhisper(forcedIndex) {
+  const index =
+    typeof forcedIndex === 'number'
+      ? Math.abs(forcedIndex) % WHISPERS.length
+      : dayOfYear(state.today) % WHISPERS.length;
+
+  const line = WHISPERS[index];
+  if (!line) return;
+
+  if (!els.whisper.textContent) {
+    els.whisper.textContent = line;
+    return;
+  }
+
+  els.whisper.classList.add('is-swapping');
+  window.setTimeout(() => {
+    els.whisper.textContent = line;
+    els.whisper.classList.remove('is-swapping');
+  }, 180);
 }
 
 /* ------------------------------------------------------------- navigation */
 
 function move(direction) {
   const next = state.index + direction;
-  if (next < 0 || next >= state.verses.length) {
-    toast(direction > 0 ? 'That is the earliest verse' : 'You are on today\'s verse');
-    return;
-  }
+  if (next < 0 || next >= state.verses.length) return;
 
-  const outClass = direction > 0 ? 'swipe-out-left' : 'swipe-out-right';
-  const inClass = direction > 0 ? 'swipe-in-left' : 'swipe-in-right';
+  els.reading.style.opacity = '0';
+  els.reading.style.transform = direction > 0 ? 'translateX(-14px)' : 'translateX(14px)';
 
-  els.card.classList.add(outClass);
   window.setTimeout(() => {
     state.index = next;
     render();
-    els.card.classList.remove(outClass);
-    els.card.classList.add(inClass);
-    window.setTimeout(() => els.card.classList.remove(inClass), 460);
-  }, 200);
+    els.reading.style.transform = direction > 0 ? 'translateX(14px)' : 'translateX(-14px)';
+    requestAnimationFrame(() => {
+      els.reading.style.opacity = '1';
+      els.reading.style.transform = 'none';
+    });
+  }, 180);
 }
 
 /* ------------------------------------------------------------------ streak */
@@ -171,67 +262,86 @@ function updateStreak() {
     streak = { last: state.today, count: 1, badges: [] };
   } else {
     const diff = daysBetween(streak.last, state.today);
-    if (diff === 0) {
-      /* already counted today */
-    } else if (diff === 1) {
+    if (diff === 1) {
       streak.count += 1;
       streak.last = state.today;
-    } else {
+    } else if (diff !== 0) {
       streak.count = 1;
       streak.last = state.today;
     }
     streak.badges = Array.isArray(streak.badges) ? streak.badges : [];
   }
 
-  const milestones = [3, 7, 14, 30, 60, 100, 365];
-  const hit = milestones.find((m) => streak.count === m && !streak.badges.includes(m));
+  const marks = [3, 7, 14, 30, 60, 100, 365];
+  const hit = marks.find((m) => streak.count === m && !streak.badges.includes(m));
 
   if (hit) {
     streak.badges.push(hit);
-    window.setTimeout(() => {
-      confetti();
-      toast('🔥 ' + hit + ' days abiding. Keep going.');
-    }, 900);
+    window.setTimeout(() => toast(hit + ' days kept'), 700);
   }
 
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(streak)); } catch {}
 
   els.streak.hidden = false;
   els.streakCount.textContent = String(streak.count);
+  document.getElementById('streakUnit').textContent = streak.count === 1 ? 'day' : 'days';
+
+  const shown = Math.min(streak.count, 7);
+  els.streakMarks.replaceChildren();
+  for (let i = 0; i < 7; i += 1) {
+    const mark = document.createElement('span');
+    mark.className = 'mark' + (i < shown ? ' is-on' : '');
+    els.streakMarks.appendChild(mark);
+  }
 }
 
-/* -------------------------------------------------------------------- amen */
+/* -------------------------------------------------------------------- copy */
 
-function initAmen() {
-  els.amenBtn.addEventListener('click', () => {
-    let count = 0;
-    try { count = Number(localStorage.getItem(AMEN_KEY) || 0) + 1; } catch {}
-    try { localStorage.setItem(AMEN_KEY, String(count)); } catch {}
-
-    els.amenBtn.classList.add('is-amen');
-    window.setTimeout(() => els.amenBtn.classList.remove('is-amen'), 900);
-
-    try { navigator.vibrate && navigator.vibrate([8, 40, 8]); } catch {}
-    toast(count > 1 ? 'Amen · ' + count + ' times' : 'Amen');
-  });
+function copyPayload() {
+  const verse = current();
+  const lines = [
+    '"' + verse.text.replace(/\s+/g, ' ').trim() + '"',
+    '',
+    verse.reference + (verse.version ? ' · ' + verse.version : ''),
+    'Abidewell — ' + prettyDate(verse.date, 'long')
+  ];
+  return lines.join('\n');
 }
 
-/* ------------------------------------------------------------------- share */
+async function copyVerse() {
+  const text = copyPayload();
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      toast('Verse copied');
+      return;
+    }
+  } catch {}
+
+  try {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '-1000px';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    toast(ok ? 'Verse copied' : 'Could not copy');
+  } catch {
+    toast('Could not copy');
+  }
 }
+
+/* ------------------------------------------------------------ share image */
 
 function wrapLines(ctx, text, maxWidth) {
   const words = String(text).replace(/\s+/g, ' ').trim().split(' ');
   const lines = [];
   let line = '';
+
   for (const word of words) {
     const test = line ? line + ' ' + word : word;
     if (ctx.measureText(test).width > maxWidth && line) {
@@ -243,6 +353,31 @@ function wrapLines(ctx, text, maxWidth) {
   }
   if (line) lines.push(line);
   return lines;
+}
+
+function drawCornerTicks(ctx, W, H) {
+  ctx.strokeStyle = 'rgba(25,20,16,.35)';
+  ctx.lineWidth = 1;
+  const pad = 66;
+  const len = 18;
+
+  const corners = [
+    [pad, pad, 1, 1],
+    [W - pad, pad, -1, 1],
+    [pad, H - pad, 1, -1],
+    [W - pad, H - pad, -1, -1]
+  ];
+
+  for (const [x, y, dx, dy] of corners) {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + len * dx, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + len * dy);
+    ctx.stroke();
+  }
 }
 
 async function buildImage(verse) {
@@ -257,75 +392,115 @@ async function buildImage(verse) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#151634');
-  bg.addColorStop(0.52, '#282052');
-  bg.addColorStop(1, '#3b2552');
+  /* paper */
+  const bg = ctx.createLinearGradient(0, 0, W * 0.4, H);
+  bg.addColorStop(0, '#f4ecdc');
+  bg.addColorStop(0.55, '#ede4d3');
+  bg.addColorStop(1, '#e1d4bd');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  const glow = ctx.createRadialGradient(W * 0.82, H * 0.1, 0, W * 0.82, H * 0.1, 760);
-  glow.addColorStop(0, 'rgba(238,194,126,.34)');
-  glow.addColorStop(1, 'rgba(238,194,126,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-
-  const glow2 = ctx.createRadialGradient(W * 0.1, H * 0.92, 0, W * 0.1, H * 0.92, 620);
-  glow2.addColorStop(0, 'rgba(161,144,247,.28)');
-  glow2.addColorStop(1, 'rgba(161,144,247,0)');
-  ctx.fillStyle = glow2;
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.strokeStyle = 'rgba(255,255,255,.16)';
-  ctx.lineWidth = 2;
-  roundRect(ctx, 42, 42, W - 84, H - 84, 54);
+  /* radial engraving */
+  ctx.save();
+  ctx.translate(W / 2, H * 0.46);
+  ctx.strokeStyle = 'rgba(25,20,16,.06)';
+  for (let i = 0; i < 72; i += 1) {
+    const a = (i / 72) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 150, Math.sin(a) * 150);
+    ctx.lineTo(Math.cos(a) * 470, Math.sin(a) * 470);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, 470, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 150, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 
+  /* frame */
+  ctx.strokeStyle = 'rgba(25,20,16,.55)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(52, 52, W - 104, H - 104);
+  ctx.strokeStyle = 'rgba(25,20,16,.22)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(60, 60, W - 120, H - 120);
+  drawCornerTicks(ctx, W, H);
+
+  /* header */
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#eec27e';
-  ctx.font = '600 30px Inter, Arial, sans-serif';
-  ctx.fillText('A B I D E W E L L', W / 2, 136);
+  ctx.fillStyle = '#c13b27';
+  ctx.beginPath();
+  ctx.arc(W / 2, 146, 22, 0, Math.PI * 2);
+  ctx.strokeStyle = '#c13b27';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.font = '400 20px "Literata", Georgia, serif';
+  ctx.fillText('✦', W / 2, 153);
 
-  const maxWidth = W - 200;
-  let size = 66;
-  ctx.font = '500 ' + size + 'px Fraunces, Georgia, serif';
+  ctx.fillStyle = '#191410';
+  ctx.font = '600 22px "IBM Plex Sans", Arial, sans-serif';
+  ctx.save();
+  ctx.letterSpacing = '8px';
+  ctx.fillText('ABIDEWELL', W / 2, 210);
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(25,20,16,.55)';
+  ctx.font = '400 19px "IBM Plex Sans", Arial, sans-serif';
+  ctx.fillText('NO. ' + String(dayOfYear(verse.date)).padStart(3, '0'), W / 2, 246);
+
+  /* verse */
+  const maxWidth = W - 240;
+  let size = 60;
+  ctx.font = '400 ' + size + 'px "Literata", Georgia, serif';
   let lines = wrapLines(ctx, verse.text, maxWidth);
 
-  while (lines.length > 11 && size > 34) {
-    size -= 4;
-    ctx.font = '500 ' + size + 'px Fraunces, Georgia, serif';
+  while (lines.length > 12 && size > 32) {
+    size -= 3;
+    ctx.font = '400 ' + size + 'px "Literata", Georgia, serif';
     lines = wrapLines(ctx, verse.text, maxWidth);
   }
 
-  const lineHeight = size * 1.42;
-  const startY = H / 2 - ((lines.length - 1) * lineHeight) / 2 - 30;
-  ctx.fillStyle = '#f7f2e6';
-  lines.forEach((line, i) => ctx.fillText(line, W / 2, startY + i * lineHeight));
+  const lineHeight = size * 1.52;
+  const blockHeight = lines.length * lineHeight;
+  let y = H * 0.5 - blockHeight / 2 + lineHeight * 0.72;
 
-  ctx.fillStyle = '#eec27e';
-  ctx.font = '600 38px Inter, Arial, sans-serif';
-  const refLine = verse.reference + (verse.version ? '  ·  ' + verse.version : '');
-  ctx.fillText(refLine, W / 2, startY + lines.length * lineHeight + 86);
+  ctx.fillStyle = '#191410';
+  for (const line of lines) {
+    ctx.fillText(line, W / 2, y);
+    y += lineHeight;
+  }
 
-  ctx.fillStyle = 'rgba(255,255,255,.42)';
-  ctx.font = '400 27px Inter, Arial, sans-serif';
-  ctx.fillText(labelForShare(verse.date), W / 2, H - 116);
+  /* reference */
+  const refY = y + 54;
+  ctx.strokeStyle = 'rgba(25,20,16,.35)';
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 42, refY - 22);
+  ctx.lineTo(W / 2 + 42, refY - 22);
+  ctx.stroke();
 
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
-}
+  ctx.fillStyle = '#c13b27';
+  ctx.font = '600 26px "IBM Plex Sans", Arial, sans-serif';
+  ctx.save();
+  ctx.letterSpacing = '3px';
+  ctx.fillText((verse.reference + (verse.version ? '  ·  ' + verse.version : '')).toUpperCase(), W / 2, refY + 16);
+  ctx.restore();
 
-function labelForShare(iso) {
-  const d = new Date(iso + 'T12:00:00');
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(d);
+  /* footer */
+  ctx.fillStyle = 'rgba(25,20,16,.6)';
+  ctx.font = 'italic 400 22px "Literata", Georgia, serif';
+  ctx.fillText('Soli Deo gloria', W / 2, H - 132);
+
+  ctx.font = '400 18px "IBM Plex Sans", Arial, sans-serif';
+  ctx.fillText(prettyDate(verse.date, 'long').toUpperCase(), W / 2, H - 100);
+
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.96));
 }
 
 async function share() {
-  const verse = state.verses[state.index] || CFG.fallbackVerse;
-  els.shareBtn.disabled = true;
+  const verse = current();
+  els.share.disabled = true;
 
   try {
     const blob = await buildImage(verse);
@@ -338,13 +513,10 @@ async function share() {
         await navigator.share({
           files: [file],
           title: 'Abidewell',
-          text: verse.reference + (verse.version ? ' (' + verse.version + ')' : '')
+          text: verse.reference + (verse.version ? ' · ' + verse.version : '')
         });
-        els.shareBtn.disabled = false;
         return;
-      } catch {
-        /* fall through to download */
-      }
+      } catch {}
     }
 
     const url = URL.createObjectURL(blob);
@@ -355,63 +527,12 @@ async function share() {
     a.click();
     a.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-    toast('Verse image saved');
+    toast('Broadside saved');
   } catch {
     toast('Could not make the image');
   } finally {
-    els.shareBtn.disabled = false;
+    els.share.disabled = false;
   }
-}
-
-/* --------------------------------------------------------------- gestures */
-
-function initGestures() {
-  let startX = 0;
-  let startY = 0;
-  let tracking = false;
-
-  els.card.addEventListener('pointerdown', (e) => {
-    tracking = true;
-    startX = e.clientX;
-    startY = e.clientY;
-  });
-
-  els.card.addEventListener('pointerup', (e) => {
-    if (!tracking) return;
-    tracking = false;
-
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-
-    if (!state.revealed) {
-      reveal();
-      return;
-    }
-
-    if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx)) {
-      if (dy < 0) reveal();
-      return;
-    }
-
-    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)) {
-      move(dx < 0 ? 1 : -1);
-    }
-  });
-
-  els.card.addEventListener('pointercancel', () => { tracking = false; });
-
-  els.seal.addEventListener('click', (e) => {
-    e.stopPropagation();
-    reveal();
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') move(1);
-    if (e.key === 'ArrowLeft') move(-1);
-    if (e.key === 'Enter' || e.key === ' ') {
-      if (!state.revealed) { e.preventDefault(); reveal(); }
-    }
-  });
 }
 
 /* ------------------------------------------------------------------ toast */
@@ -424,19 +545,70 @@ function toast(message) {
   toastTimer = window.setTimeout(() => els.toast.classList.remove('show'), 2200);
 }
 
-function confetti() {
-  const colors = ['#eec27e', '#ffa9c9', '#a190f7', '#7ee0c3', '#ffd39b', '#ffffff'];
-  for (let i = 0; i < 46; i += 1) {
-    const piece = document.createElement('span');
-    piece.className = 'confetti-piece';
-    piece.style.left = Math.random() * 100 + 'vw';
-    piece.style.background = colors[i % colors.length];
-    piece.style.animationDelay = Math.random() * 0.35 + 's';
-    piece.style.animationDuration = 1.3 + Math.random() * 0.9 + 's';
-    piece.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
-    document.body.appendChild(piece);
-    window.setTimeout(() => piece.remove(), 2600);
+/* --------------------------------------------------------------- gestures */
+
+function initGestures() {
+  let x0 = 0;
+  let y0 = 0;
+  let tracking = false;
+
+  els.reading.addEventListener('pointerdown', (e) => {
+    tracking = true;
+    x0 = e.clientX;
+    y0 = e.clientY;
+  });
+
+  els.reading.addEventListener('pointerup', (e) => {
+    if (!tracking) return;
+    tracking = false;
+
+    const dx = e.clientX - x0;
+    const dy = e.clientY - y0;
+
+    if (Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy)) {
+      move(dx < 0 ? 1 : -1);
+    }
+  });
+
+  els.reading.addEventListener('pointercancel', () => { tracking = false; });
+
+  /* Easter egg: tap the issue number for a different whisper. */
+  const issueHost = els.issue && els.issue.parentElement;
+  if (issueHost) {
+    issueHost.addEventListener('click', () => {
+      setWhisper(Math.floor(Math.random() * WHISPERS.length));
+      toast('✦');
+    });
   }
+
+  els.prev.addEventListener('click', () => move(1));
+  els.next.addEventListener('click', () => move(-1));
+
+  els.amen.addEventListener('click', () => {
+    let count = 0;
+    try { count = Number(localStorage.getItem(AMEN_KEY) || 0) + 1; } catch {}
+    try { localStorage.setItem(AMEN_KEY, String(count)); } catch {}
+
+    els.amen.classList.add('is-pressed');
+    window.setTimeout(() => els.amen.classList.remove('is-pressed'), 800);
+    try { navigator.vibrate && navigator.vibrate([6, 36, 6]); } catch {}
+    toast(count > 1 ? 'Amen · ' + count : 'Amen');
+  });
+
+  els.copy.addEventListener('click', copyVerse);
+  els.share.addEventListener('click', share);
+
+  els.simplifyBtn.addEventListener('click', () => {
+    const open = els.simplifyBtn.getAttribute('aria-expanded') === 'true';
+    els.simplifyBtn.setAttribute('aria-expanded', String(!open));
+    els.simplifyPanel.hidden = open;
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+    if (e.key === 'ArrowRight') move(-1);
+    if (e.key === 'ArrowLeft') move(1);
+  });
 }
 
 /* ------------------------------------------------------------------- init */
@@ -444,38 +616,36 @@ function confetti() {
 function initServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
 }
 
 async function init() {
-  applyTheme();
   state.today = todayISO();
+  buildTicks();
 
-  const verses = await loadVerses();
-  state.verses = usable(verses);
+  const list = await loadVerses();
+  state.verses = usable(list);
+  state.index = 0;
 
   render();
   initGestures();
-  initAmen();
-  els.shareBtn.addEventListener('click', share);
   updateStreak();
   initServiceWorker();
 
-  /* Re-check the date if the tab stays open past midnight. */
   window.setInterval(() => {
     const now = todayISO();
     if (now !== state.today) {
       state.today = now;
-      applyTheme();
-      loadVerses().then((list) => {
-        state.verses = usable(list);
+      buildTicks();
+      loadVerses().then((fresh) => {
+        state.verses = usable(fresh);
         state.index = 0;
         render();
       });
     }
-  }, 60 * 1000);
+  }, 60000);
 }
 
 init();

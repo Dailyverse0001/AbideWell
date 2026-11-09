@@ -1,6 +1,7 @@
 /* Abidewell — archive */
 const CFG = window.ABIDEWELL;
 const listEl = document.getElementById('archiveList');
+const countEl = document.getElementById('archiveCount');
 
 function todayISO() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -11,22 +12,9 @@ function todayISO() {
   }).format(new Date());
 }
 
-function applyTheme() {
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: CFG.timeZone,
-      hour: '2-digit',
-      hourCycle: 'h23'
-    }).format(new Date())
-  );
-
-  let theme = 'night';
-  if (hour >= 5 && hour < 8) theme = 'dawn';
-  else if (hour >= 8 && hour < 17) theme = 'day';
-  else if (hour >= 17 && hour < 20) theme = 'dusk';
-
-  document.body.classList.remove('theme-dawn', 'theme-day', 'theme-dusk', 'theme-night');
-  document.body.classList.add('theme-' + theme);
+function dayOfYear(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 86400000) + 1;
 }
 
 function longDate(iso) {
@@ -62,14 +50,16 @@ async function load() {
       const data = await res.json();
       if (Array.isArray(data)) verses = data;
     }
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   verses = verses
     .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && typeof v.text === 'string')
     .filter((v) => v.date <= today)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+  countEl.textContent = verses.length
+    ? verses.length + (verses.length === 1 ? ' reading' : ' readings')
+    : 'No readings yet';
 
   if (!verses.length) {
     listEl.innerHTML = '<p class="empty">No verses yet. The first one is on its way.</p>';
@@ -89,6 +79,7 @@ async function load() {
     parts.push(
       '<article class="archive-item" tabindex="0">' +
         '<div class="archive-top">' +
+          '<span class="archive-no">' + String(dayOfYear(verse.date)).padStart(3, '0') + '</span>' +
           '<span class="archive-ref">' + escapeHtml(verse.reference) + '</span>' +
           '<span class="archive-date">' + escapeHtml(longDate(verse.date)) + '</span>' +
         '</div>' +
@@ -115,11 +106,10 @@ async function load() {
 function initServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
 }
 
-applyTheme();
 load();
 initServiceWorker();

@@ -90,30 +90,30 @@ function draw(size) {
       const nx = x / W;
       const ny = y / W;
 
-      // Diagonal indigo → plum base.
+      // Warm paper base.
       const t = Math.min(1, Math.max(0, nx * 0.45 + ny * 0.55));
-      let r = lerp(24, 60, t);
-      let g = lerp(25, 38, t);
-      let b = lerp(72, 84, t);
+      let r = lerp(246, 224, t);
+      let g = lerp(238, 211, t);
+      let b = lerp(222, 187, t);
 
-      // Warm glow in the upper right.
+      // Faint vermilion bloom in the upper right.
       const gx = nx - 0.78;
       const gy = ny - 0.18;
       const glow = Math.max(0, 1 - Math.sqrt(gx * gx + gy * gy) / 0.62);
       const glowPower = glow * glow;
-      r += 150 * glowPower;
-      g += 92 * glowPower;
-      b += 30 * glowPower;
+      r += 8 * glowPower;
+      g -= 12 * glowPower;
+      b -= 20 * glowPower;
 
       const dx = x - center;
       const dy = y - center;
       const radius = Math.sqrt(dx * dx + dy * dy);
 
-      // Gold ring.
+      // Ink ring.
       if (Math.abs(radius - 0.305 * W) < 0.018 * W) {
-        r = lerp(r, 232, 0.88);
-        g = lerp(g, 183, 0.88);
-        b = lerp(b, 104, 0.88);
+        r = lerp(r, 25, 0.92);
+        g = lerp(g, 20, 0.92);
+        b = lerp(b, 16, 0.92);
       }
 
       // Four-point star (astroid) inside the ring.
@@ -122,9 +122,9 @@ function draw(size) {
       const inStar = Math.pow(ax, 2 / 3) + Math.pow(ay, 2 / 3) <= 1;
 
       if (inStar) {
-        r = lerp(r, 248, 0.94);
-        g = lerp(g, 243, 0.94);
-        b = lerp(b, 231, 0.94);
+        r = lerp(r, 193, 0.94);
+        g = lerp(g, 59, 0.94);
+        b = lerp(b, 39, 0.94);
       }
 
       buffer[i] = clamp(r);
