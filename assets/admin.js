@@ -551,6 +551,80 @@ els.autoFillBtn.addEventListener('click', async () => {
   }
 });
 
+/* ------------------------------------------------------- explanation library */
+
+let EXPLAIN = null;
+
+function normaliseRef(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\./g, ':')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*:\s*/g, ':')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/^psalms\b/, 'psalm')
+    .trim();
+}
+
+function parseRef(value) {
+  const hit = normaliseRef(value).match(/^(.+?)\s*(\d+):(\d+)(?:-(\d+))?$/);
+  if (!hit) return null;
+  return {
+    book: hit[1].trim(),
+    chapter: Number(hit[2]),
+    from: Number(hit[3]),
+    to: Number(hit[4] || hit[3])
+  };
+}
+
+async function loadExplain() {
+  if (EXPLAIN) return EXPLAIN;
+
+  for (const path of ['../data/explain.json', 'data/explain.json']) {
+    try {
+      const res = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      EXPLAIN = data && data.entries ? data.entries : {};
+      return EXPLAIN;
+    } catch {}
+  }
+
+  EXPLAIN = {};
+  return EXPLAIN;
+}
+
+function findExplanation(entries, reference) {
+  if (!entries) return '';
+
+  const key = normaliseRef(reference);
+  if (entries[key]) return entries[key];
+
+  const want = parseRef(reference);
+  if (!want) return '';
+
+  for (const [stored, line] of Object.entries(entries)) {
+    const range = parseRef(stored);
+    if (!range) continue;
+    if (range.book !== want.book) continue;
+    if (range.chapter !== want.chapter) continue;
+    if (want.from >= range.from && want.from <= range.to) return line;
+  }
+
+  return '';
+}
+
+async function simpleWording(reference) {
+  const res = await fetch(
+    'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=bbe'
+  ).catch(() => null);
+
+  if (!res || !res.ok) return '';
+
+  const data = await res.json().catch(() => null);
+  return String((data && data.text) || '').replace(/\s+/g, ' ').trim();
+}
+
 async function fillExplanation() {
   const reference = els.reference.value.trim();
   const text = els.text.value.trim();
@@ -558,9 +632,20 @@ async function fillExplanation() {
 
   if (!reference || !text) return false;
 
+  const known = findExplanation(await loadExplain(), reference);
+
+  if (known) {
+    els.simplify.value = known;
+    updatePreview();
+    toast('Verse and explanation filled in.');
+    return true;
+  }
+
   const placeholder = els.simplify.placeholder;
   els.simplify.value = '';
   els.simplify.placeholder = 'Writing a simple explanation…';
+
+  let filled = false;
 
   try {
     const res = await fetch('/api/simplify', {
@@ -573,19 +658,29 @@ async function fillExplanation() {
 
     if (res.ok && data && data.simplify) {
       els.simplify.value = data.simplify;
-      updatePreview();
-      toast('Verse and explanation filled in.');
-      return true;
+      filled = true;
     }
+  } catch {}
 
-    toast('Verse filled in. The explanation needs to be typed.');
-    return false;
-  } catch {
-    toast('Verse filled in. The explanation needs to be typed.');
-    return false;
-  } finally {
-    els.simplify.placeholder = placeholder;
+  if (!filled) {
+    const simple = await simpleWording(reference);
+
+    if (simple) {
+      els.simplify.value = simple;
+      filled = true;
+      toast('Filled in with simple-English wording.');
+    }
   }
+
+  els.simplify.placeholder = placeholder;
+
+  if (!filled) {
+    toast('Verse filled in. Add an explanation if you want one.');
+    return false;
+  }
+
+  updatePreview();
+  return true;
 }
 
 /* ------------------------------------------------------------------- post */
