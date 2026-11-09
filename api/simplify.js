@@ -138,6 +138,14 @@ export default async function handler(req, res) {
         instruction
       );
     }
+    if (!simplify && customBase && customKey) {
+      simplify = await askOpenAiStyle(
+        customBase + '/chat/completions',
+        customKey,
+        customModel,
+        instruction
+      );
+    }
 
     simplify = simplify.replace(/\s+/g, ' ').trim().slice(0, 800);
 
