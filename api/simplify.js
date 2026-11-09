@@ -106,8 +106,11 @@ export default async function handler(req, res) {
   const gemini = process.env.GEMINI_API_KEY || '';
   const groq = process.env.GROQ_API_KEY || '';
   const openrouter = process.env.OPENROUTER_API_KEY || '';
+  const customBase = (process.env.OPENAI_BASE_URL || '').replace(/\/$/, '');
+  const customKey = process.env.OPENAI_API_KEY || '';
+  const customModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-  if (!gemini && !groq && !openrouter) {
+  if (!gemini && !groq && !openrouter && !(customBase && customKey)) {
     return res.status(501).json({
       error: 'Automatic explanations are not switched on. Add GEMINI_API_KEY on the host.'
     });
