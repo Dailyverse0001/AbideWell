@@ -498,13 +498,24 @@ els.clearBtn.addEventListener('click', () => {
 
 /* --------------------------------------------------------------- auto fill */
 
-function lookup(reference) {
-  return Promise.any([
-    fetch('https://bible-api.com/' + encodeURIComponent(reference) + '?translation=kjv')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('bad')))),
-    fetch('https://bible-api.com/' + encodeURIComponent(reference) + '?translation=web')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('bad'))))
-  ]);
+async function lookup(reference) {
+  const tried = [];
+
+  for (const translation of ['kjv', 'web']) {
+    const res = await fetch(
+      'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=' + translation
+    ).catch(() => null);
+
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && String(data.text || '').trim()) {
+        return { ...data, translation };
+      }
+    }
+    tried.push(translation);
+  }
+
+  throw new Error('not found');
 }
 
 els.autoFillBtn.addEventListener('click', async () => {
@@ -527,9 +538,9 @@ els.autoFillBtn.addEventListener('click', async () => {
 
     els.text.value = text;
     els.reference.value = data.reference || reference;
-    els.version.value = 'KJV';
+    els.version.value = data.translation === 'web' ? 'WEB' : 'KJV';
     updatePreview();
-    toast('Filled in KJV. Edit it to match your version.');
+    toast('Filled in ' + (data.translation === 'web' ? 'WEB' : 'KJV') + '. Edit it to match your version.');
   } catch {
     toast('Could not find that. Type the verse by hand.');
   } finally {
