@@ -1,21 +1,22 @@
 /* Abidewell — offline shell. Bump CACHE when you change the design. */
-const CACHE = 'abidewell-v1';
+const CACHE = 'abidewell-v2';
+const ROOT = self.registration.scope;
 
 const SHELL = [
-  '/',
-  '/index.html',
-  '/archive.html',
-  '/admin.html',
-  '/assets/styles.css',
-  '/assets/config.js',
-  '/assets/app.js',
-  '/assets/archive.js',
-  '/assets/admin.js',
-  '/assets/icon.svg',
-  '/assets/icon-192.png',
-  '/assets/icon-512.png',
-  '/manifest.webmanifest'
-];
+  './',
+  'index.html',
+  'archive.html',
+  'admin.html',
+  'assets/styles.css',
+  'assets/config.js',
+  'assets/app.js',
+  'assets/archive.js',
+  'assets/admin.js',
+  'assets/icon.svg',
+  'assets/icon-192.png',
+  'assets/icon-512.png',
+  'manifest.webmanifest'
+].map((path) => new URL(path, ROOT).href);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -73,7 +74,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          if (request.mode === 'navigate') return caches.match('/index.html');
+          if (request.mode === 'navigate') return caches.match(new URL('index.html', ROOT).href);
           return Response.error();
         });
     })
