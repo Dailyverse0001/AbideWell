@@ -43,6 +43,7 @@ function rewrite(rel, text) {
   if (rel.endsWith('.js')) {
     return text
       .replace(/register\('\/sw\.js'\)/g, "register('sw.js')")
+      .replace(/data: '\/api\/verses'/g, "data: '" + RAW + "'")
       .replace(
         /'(?:\.\.\/)?data\/verses\.json\?t='/g,
         "'" + RAW + "?t='"

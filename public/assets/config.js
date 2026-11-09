@@ -18,7 +18,7 @@ window.ABIDEWELL = {
 
   // The live verse file, read fresh on every visit. Posting never needs a
   // rebuild: the page picks the new verse up on the next load.
-  data: 'https://raw.githubusercontent.com/Dailyverse0001/AbideWell/main/public/data/verses.json',
+  data: '/api/verses',
 
   // Shown only if the archive is ever empty. KJV is public domain.
   fallbackVerse: {
