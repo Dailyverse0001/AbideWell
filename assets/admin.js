@@ -540,7 +540,9 @@ els.autoFillBtn.addEventListener('click', async () => {
     els.reference.value = data.reference || reference;
     els.version.value = data.translation === 'web' ? 'WEB' : 'KJV';
     updatePreview();
-    toast('Filled in ' + (data.translation === 'web' ? 'WEB' : 'KJV') + '. Edit it to match your version.');
+    toast('Filled in ' + (data.translation === 'web' ? 'WEB' : 'KJV') + '. Writing the explanation…');
+
+    await fillExplanation();
   } catch {
     toast('Could not find that. Type the verse by hand.');
   } finally {
@@ -548,6 +550,43 @@ els.autoFillBtn.addEventListener('click', async () => {
     els.autoFillBtn.textContent = 'Auto-fill';
   }
 });
+
+async function fillExplanation() {
+  const reference = els.reference.value.trim();
+  const text = els.text.value.trim();
+  const version = els.version.value;
+
+  if (!reference || !text) return false;
+
+  const placeholder = els.simplify.placeholder;
+  els.simplify.value = '';
+  els.simplify.placeholder = 'Writing a simple explanation…';
+
+  try {
+    const res = await fetch('/api/simplify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference, version, text })
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (res.ok && data && data.simplify) {
+      els.simplify.value = data.simplify;
+      updatePreview();
+      toast('Verse and explanation filled in.');
+      return true;
+    }
+
+    toast('Verse filled in. The explanation needs to be typed.');
+    return false;
+  } catch {
+    toast('Verse filled in. The explanation needs to be typed.');
+    return false;
+  } finally {
+    els.simplify.placeholder = placeholder;
+  }
+}
 
 /* ------------------------------------------------------------------- post */
 
