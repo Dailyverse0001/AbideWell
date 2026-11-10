@@ -514,7 +514,7 @@ els.clearBtn.addEventListener('click', () => {
 /* ------------------------------------------------------- reference picker */
 
 const FREE_VERSIONS = { KJV: 'kjv', WEB: 'web', ASV: 'asv', BBE: 'bbe', YLT: 'ylt', DARBY: 'darby' };
-const LOCAL_VERSIONS = { NKJV: 'nkjv' };
+const LOCAL_VERSIONS = { NKJV: 'nkjv', KJV: 'kjv' };
 const REF = { books: [], loaded: false };
 
 function setOptions(select, items, selected) {
@@ -677,31 +677,34 @@ async function localVerse(version, reference) {
     .replace(/[^a-z0-9]+/g, '-');
 
   const dir = 'data/versions/' + code;
+  const candidates = [slug, slug + 's', slug.replace(/s$/, '')];
 
   for (const base of ['../' + dir + '/', dir + '/']) {
-    try {
-      const res = await fetch(base + slug + '.json', { cache: 'no-store' });
-      if (!res.ok) continue;
+    for (const name of candidates) {
+      try {
+        const res = await fetch(base + name + '.json', { cache: 'no-store' });
+        if (!res.ok) continue;
 
-      const data = await res.json();
-      const verses = data.verses || {};
-      const start = Number(from);
-      const end = Number(to || from);
-      const parts = [];
+        const data = await res.json();
+        const verses = data.verses || {};
+        const start = Number(from);
+        const end = Number(to || from);
+        const parts = [];
 
-      for (let v = start; v <= end; v += 1) {
-        const text = verses[chapter + ':' + v];
-        if (text) parts.push(text);
-      }
+        for (let v = start; v <= end; v += 1) {
+          const text = verses[chapter + ':' + v];
+          if (text) parts.push(text);
+        }
 
-      if (!parts.length) return null;
+        if (!parts.length) continue;
 
-      return {
-        text: parts.join(' '),
-        reference:
-          data.book + ' ' + chapter + ':' + from + (to && Number(to) > start ? '-' + to : '')
-      };
-    } catch {}
+        return {
+          text: parts.join(' '),
+          reference:
+            data.book + ' ' + chapter + ':' + from + (to && Number(to) > start ? '-' + to : '')
+        };
+      } catch {}
+    }
   }
 
   return null;
