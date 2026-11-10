@@ -215,6 +215,48 @@ async function main() {
 
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
+  /* Second pass: anything still missing, one verse per request. */
+  const leftovers = [];
+  for (const book of bible) {
+    book.chapters.forEach((chapter, ci) => {
+      chapter.forEach((text, vi) => {
+        const ref = book.name + ' ' + (ci + 1) + ':' + (vi + 1);
+        const clean = String(text || '').replace(/\s+/g, ' ').trim();
+        if (clean && !store.entries[normalise(ref)]) leftovers.push({ ref, text: clean });
+      });
+    });
+  }
+
+  console.log('second pass: ' + leftovers.length + ' verses');
+
+  let cursor = 0;
+
+  async function single() {
+    while (cursor < leftovers.length) {
+      const verse = leftovers[cursor];
+      cursor += 1;
+
+      try {
+        const made = await ask([verse.ref + ' — ' + verse.text]);
+
+        for (const [ref, text] of Object.entries(made)) {
+          const key = normalise(ref);
+          const cleaned = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 800);
+          if (key && cleaned && !store.entries[key]) {
+            store.entries[key] = cleaned;
+            added += 1;
+          }
+        }
+      } catch {}
+
+      await sleep(PAUSE);
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, single));
+  await save(store);
+  console.log('after second pass, entries ' + Object.keys(store.entries).length);
+
   await save(store);
   console.log('done. entries ' + Object.keys(store.entries).length + ', added ' + added + ', failed ' + failed);
 
