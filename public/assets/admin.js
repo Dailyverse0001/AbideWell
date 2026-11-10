@@ -514,6 +514,7 @@ els.clearBtn.addEventListener('click', () => {
 /* ------------------------------------------------------- reference picker */
 
 const FREE_VERSIONS = { KJV: 'kjv', WEB: 'web', ASV: 'asv', BBE: 'bbe', YLT: 'ylt', DARBY: 'darby' };
+const LOCAL_VERSIONS = { NKJV: 'nkjv' };
 const REF = { books: [], loaded: false };
 
 function setOptions(select, items, selected) {
@@ -660,7 +661,59 @@ els.refMode.addEventListener('change', () => {
 
 /* --------------------------------------------------------------- auto fill */
 
+async function localVerse(version, reference) {
+  const code = LOCAL_VERSIONS[version];
+  if (!code) return null;
+
+  const hit = String(reference).match(/^(.+?)\s*(\d+):(\d+)(?:-(\d+))?$/);
+  if (!hit) return null;
+
+  const [, bookName, chapter, from, to] = hit;
+  const slug = bookName
+    .trim()
+    .toLowerCase()
+    .replace(/^psalm$/, 'psalms')
+    .replace(/^song of songs$/, 'song of solomon')
+    .replace(/[^a-z0-9]+/g, '-');
+
+  const dir = 'data/versions/' + code;
+
+  for (const base of ['../' + dir + '/', dir + '/']) {
+    try {
+      const res = await fetch(base + slug + '.json', { cache: 'no-store' });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const verses = data.verses || {};
+      const start = Number(from);
+      const end = Number(to || from);
+      const parts = [];
+
+      for (let v = start; v <= end; v += 1) {
+        const text = verses[chapter + ':' + v];
+        if (text) parts.push(text);
+      }
+
+      if (!parts.length) return null;
+
+      return {
+        text: parts.join(' '),
+        reference:
+          data.book + ' ' + chapter + ':' + from + (to && Number(to) > start ? '-' + to : '')
+      };
+    } catch {}
+  }
+
+  return null;
+}
+
 async function lookup(reference, version) {
+  if (LOCAL_VERSIONS[version]) {
+    const local = await localVerse(version, reference);
+    if (!local) throw new Error('not found');
+    return { data: local, translation: version };
+  }
+
   const translation = FREE_VERSIONS[version] || 'kjv';
   const res = await fetch(
     'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=' + translation
@@ -695,7 +748,7 @@ async function autoFill(silent) {
 
     els.text.value = text;
 
-    if (FREE_VERSIONS[wanted] && translation === FREE_VERSIONS[wanted]) {
+    if (translation.toUpperCase() === wanted.toUpperCase()) {
       if (!silent) toast('Filled in ' + wanted + '. Writing the explanation…');
     } else {
       toast(wanted + ' is copyrighted — filled ' + translation.toUpperCase() + ' instead. Paste the ' + wanted + ' text over it.');
