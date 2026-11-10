@@ -20,7 +20,20 @@ if (!code || !source) {
   process.exit(1);
 }
 
-const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+/* Keep slugs aligned with public/data/reference.json so one file name works
+ * for every version, whatever the source calls the book. */
+const CANON = {
+  psalm: 'psalms',
+  'song-of-songs': 'song-of-solomon',
+  'song-of-solomon': 'song-of-solomon',
+  'revelation-of-john': 'revelation',
+  'acts-of-the-apostles': 'acts'
+};
+
+const slug = (name) => {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return CANON[base] || base;
+};
 
 async function loadSource() {
   if (/^https?:/i.test(source)) {
