@@ -514,7 +514,7 @@ els.clearBtn.addEventListener('click', () => {
 /* ------------------------------------------------------- reference picker */
 
 const FREE_VERSIONS = { KJV: 'kjv', WEB: 'web', ASV: 'asv', BBE: 'bbe', YLT: 'ylt', DARBY: 'darby' };
-const LOCAL_VERSIONS = { NKJV: 'nkjv' };
+const LOCAL_VERSIONS = { NKJV: 'nkjv', KJV: 'kjv' };
 const REF = { books: [], loaded: false };
 
 function setOptions(select, items, selected) {
