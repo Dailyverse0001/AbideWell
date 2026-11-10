@@ -61,6 +61,18 @@ function normalise(data) {
   }));
 }
 
+/* Some sources carry printing artefacts: [section headings] and {supplied
+ * words} or {margin notes: or, ...}. Strip the headings, drop the notes,
+ * and unwrap the supplied words. */
+function cleanText(text) {
+  return String(text || '')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\{[^{}]*:[^{}]*\}/g, ' ')
+    .replace(/[{}]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const books = normalise(await loadSource());
 const out = join(root, 'public', 'data', 'versions', code);
 
@@ -74,7 +86,7 @@ for (const book of books) {
 
   book.chapters.forEach((chapter, ci) => {
     chapter.forEach((text, vi) => {
-      const clean = String(text || '').replace(/\s+/g, ' ').trim();
+      const clean = cleanText(text);
       if (clean) verses[ci + 1 + ':' + (vi + 1)] = clean;
     });
   });
