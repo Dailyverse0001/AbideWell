@@ -155,29 +155,42 @@ async function main() {
   let failed = 0;
   let sinceCommit = 0;
 
+  async function fillChunk(slice, depth = 0) {
+    const lines = slice.map((v) => v.ref + ' — ' + v.text);
+    let got = 0;
+
+    try {
+      const made = await ask(lines);
+
+      for (const [ref, text] of Object.entries(made)) {
+        const key = normalise(ref);
+        const cleaned = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 800);
+        if (!key || !cleaned || store.entries[key]) continue;
+        store.entries[key] = cleaned;
+        got += 1;
+        added += 1;
+      }
+    } catch (error) {
+      failed += 1;
+      console.error(slice[0].ref.split(':')[0] + ': ' + error.message);
+    }
+
+    /* A whole chunk came back empty — ask again in smaller pieces. */
+    if (got === 0 && slice.length > 4 && depth < 3) {
+      const half = Math.ceil(slice.length / 2);
+      await sleep(PAUSE);
+      await fillChunk(slice.slice(0, half), depth + 1);
+      await sleep(PAUSE);
+      await fillChunk(slice.slice(half), depth + 1);
+    }
+  }
+
   async function worker() {
     while (tasks.length) {
       const task = tasks.shift();
 
       for (let i = 0; i < task.wanted.length; i += CHUNK) {
-        const slice = task.wanted.slice(i, i + CHUNK);
-        const lines = slice.map((v) => v.ref + ' — ' + v.text);
-
-        try {
-          const made = await ask(lines);
-
-          for (const [ref, text] of Object.entries(made)) {
-            const key = normalise(ref);
-            const cleaned = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 800);
-            if (!key || !cleaned || store.entries[key]) continue;
-            store.entries[key] = cleaned;
-            added += 1;
-          }
-        } catch (error) {
-          failed += 1;
-          console.error(task.book + ' ' + task.chapter + ': ' + error.message);
-        }
-
+        await fillChunk(task.wanted.slice(i, i + CHUNK));
         await sleep(PAUSE);
       }
 
