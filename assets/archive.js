@@ -86,7 +86,7 @@ async function load() {
     }
 
     parts.push(
-      '<article class="archive-item" tabindex="0">' +
+      '<article class="archive-item" tabindex="0" data-date="' + escapeHtml(verse.date) + '">' +
         '<div class="archive-top">' +
           '<span class="archive-no">' + String(dayOfYear(verse.date)).padStart(3, '0') + '</span>' +
           '<span class="archive-ref">' + escapeHtml(verse.reference) + '</span>' +
@@ -108,6 +108,72 @@ async function load() {
         e.preventDefault();
         toggle();
       }
+    });
+  });
+
+  attachHistory();
+}
+
+async function loadHistoryList() {
+  for (const path of ['/api/history', '../data/history.json', 'data/history.json']) {
+    try {
+      const res = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    } catch {}
+  }
+
+  return [];
+}
+
+function attachHistory() {
+  loadHistoryList().then((records) => {
+    if (!records.length) return;
+
+    const byDate = new Map();
+
+    for (const record of records) {
+      if (!record || !record.date) continue;
+      if (!byDate.has(record.date)) byDate.set(record.date, []);
+      byDate.get(record.date).push(record);
+    }
+
+    listEl.querySelectorAll('.archive-item').forEach((item) => {
+      const date = item.getAttribute('data-date');
+      const list = byDate.get(date);
+      if (!list || !list.length) return;
+
+      const details = document.createElement('details');
+      details.className = 'archive-history';
+
+      const rows = list
+        .slice()
+        .reverse()
+        .map((record) => {
+          const verse = record.verse || {};
+          const when = new Date(record.at).toLocaleString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          const label = (verse.reference || '') + (record.action === 'delete' ? ' — deleted' : '');
+          return (
+            '<div class="history-row">' +
+              '<span class="history-when">' + escapeHtml(when) + '</span>' +
+              '<span class="history-ref">' + escapeHtml(label) + '</span>' +
+            '</div>'
+          );
+        })
+        .join('');
+
+      details.innerHTML =
+        '<summary>' + list.length + (list.length === 1 ? ' saved version' : ' saved versions') + '</summary>' +
+        rows;
+
+      details.addEventListener('click', (event) => event.stopPropagation());
+      item.appendChild(details);
     });
   });
 }

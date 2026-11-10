@@ -590,6 +590,30 @@ code {
   color: var(--ink-soft);
 }
 
+.archive-history {
+  margin: 0 0 18px 58px;
+  font-size: .72rem;
+  color: var(--ink-soft);
+}
+
+.archive-history summary {
+  cursor: pointer;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-size: .58rem;
+}
+
+.history-row {
+  display: flex;
+  gap: 12px;
+  padding: 5px 0;
+  border-top: 1px solid var(--ink-faint);
+}
+
+.history-when { flex: none; opacity: .8; }
+.history-ref { font-family: var(--serif); font-size: .86rem; color: var(--ink); }
+
 /* ---------- Admin ------------------------------------------------------- */
 
 .admin-body { padding-bottom: 40px; }
@@ -664,6 +688,24 @@ code {
 .setup[open] summary { margin-bottom: 14px; }
 
 .setup .pill { margin-top: 14px; }
+
+.ref-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 8px;
+}
+
+.ref-grid--range {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 8px;
+}
+
+.ref-grid select { width: 100%; }
+
+@media (max-width: 520px) {
+  .ref-grid { grid-template-columns: 1fr 1fr; }
+  .ref-grid select:first-child { grid-column: 1 / -1; }
+}
 
 label {
   display: block;

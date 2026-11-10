@@ -84,25 +84,45 @@
             <label for="version">Version</label>
             <select id="version">
               <option value="NKJV">NKJV</option>
-              <option value="KJV">KJV</option>
-              <option value="WEB">WEB</option>
-              <option value="ESV">ESV</option>
               <option value="NIV">NIV</option>
+              <option value="ESV">ESV</option>
               <option value="NLT">NLT</option>
               <option value="NASB">NASB</option>
               <option value="AMP">AMP</option>
               <option value="MSG">MSG</option>
+              <option value="KJV" data-free="1">KJV</option>
+              <option value="WEB" data-free="1">WEB</option>
+              <option value="ASV" data-free="1">ASV</option>
+              <option value="BBE" data-free="1">BBE</option>
+              <option value="YLT" data-free="1">YLT</option>
+              <option value="DARBY" data-free="1">DARBY</option>
               <option value="OTHER">Other</option>
             </select>
           </div>
         </div>
 
-        <label for="reference">Reference</label>
-        <div class="row">
-          <input id="reference" placeholder="Psalm 23:1" autocomplete="off" />
-          <button class="pill" id="autoFillBtn" type="button">Auto-fill</button>
+        <label for="refBook">Reference</label>
+        <input id="reference" type="hidden" />
+        <div class="ref-grid">
+          <select id="refBook" aria-label="Book"></select>
+          <select id="refChapter" aria-label="Chapter"></select>
+          <select id="refVerse" aria-label="Verse"></select>
         </div>
-        <p class="hint">Auto-fill pulls the text in KJV from a free Bible API. Edit it to match your version.</p>
+
+        <div class="ref-grid ref-grid--range">
+          <select id="refMode" aria-label="How many verses">
+            <option value="one">Single verse</option>
+            <option value="range">Two or more</option>
+          </select>
+          <select id="refVerseTo" aria-label="Last verse" hidden></select>
+        </div>
+
+        <p class="hint">Pick the book, chapter and verse — no typing. Choose “Two or more” for a range.</p>
+
+        <div class="panel-actions" style="margin-top:12px">
+          <button class="pill" id="autoFillBtn" type="button">Auto-fill verse</button>
+        </div>
+        <p class="hint">Free versions (KJV, WEB, ASV, BBE, YLT, DARBY) fill in automatically. NKJV, NIV, ESV, NLT and NASB are copyrighted, so paste those by hand and pick the label.</p>
 
         <label for="text">Verse text</label>
         <textarea id="text" rows="7" placeholder="Paste or type the verse…"></textarea>
