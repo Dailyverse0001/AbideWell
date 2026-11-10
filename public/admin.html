@@ -101,6 +101,45 @@
           </div>
         </div>
 
+        <div class="grid-2">
+          <div>
+            <label for="randomTheme">Random category</label>
+            <select id="randomTheme">
+              <option value="">Any category</option>
+              <option value="promise">God’s Promise</option>
+              <option value="faith">Faith and Trust</option>
+              <option value="blessing">Blessing</option>
+              <option value="hope">Hope and Encouragement</option>
+              <option value="love">Love of God</option>
+              <option value="strength">Strength and Courage</option>
+              <option value="peace">Peace of Mind</option>
+              <option value="healing">Healing and Restoration</option>
+              <option value="protection">Protection and Safety</option>
+              <option value="wisdom">Wisdom and Guidance</option>
+              <option value="forgiveness">Forgiveness and Mercy</option>
+              <option value="joy">Joy and Happiness</option>
+              <option value="patience">Patience and Perseverance</option>
+              <option value="gratitude">Gratitude and Thanksgiving</option>
+              <option value="comfort">Comfort in Difficult Times</option>
+              <option value="fear">Overcoming Fear</option>
+              <option value="prosperity">Success and Prosperity</option>
+              <option value="prayer">Prayer and Answered Prayers</option>
+              <option value="faithfulness">God’s Faithfulness</option>
+              <option value="beginnings">New Beginnings</option>
+              <option value="temptation">Victory Over Temptation</option>
+              <option value="purpose">Purpose and Calling</option>
+              <option value="family">Family and Relationships</option>
+              <option value="miracles">Miracles and God’s Power</option>
+              <option value="salvation">Eternal Life and Salvation</option>
+            </select>
+          </div>
+          <div>
+            <label aria-hidden="true">Choose a passage</label>
+            <button class="pill" id="randomBtn" type="button" style="width:100%" disabled>Random</button>
+          </div>
+        </div>
+        <p class="hint" id="randomHint">Random uses the verified NKJV schedule and fills the complete passage and explanation.</p>
+
         <label for="refBook">Reference</label>
         <input id="reference" type="hidden" />
         <div class="ref-grid">
@@ -152,7 +191,7 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Recent readings</h2>
+          <h2>Upcoming and recent readings</h2>
           <button class="pill small" id="refreshBtn" type="button">Refresh</button>
         </div>
         <div class="list" id="verseList">

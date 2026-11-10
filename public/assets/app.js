@@ -1,4 +1,6 @@
 /* Abidewell — today's reading */
+import { loadMergedVerses } from './verse-data.js';
+
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
 
@@ -152,17 +154,7 @@ async function loadVerses() {
     CFG.data ? CFG.data + '?t=' + Date.now() : null,
     'data/verses.json?t=' + Date.now()
   ].filter(Boolean);
-
-  for (const source of sources) {
-    try {
-      const res = await fetch(source, { cache: 'no-store' });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (Array.isArray(data)) return data;
-    } catch {}
-  }
-
-  return [];
+  return loadMergedVerses(sources);
 }
 
 function usable(verses) {

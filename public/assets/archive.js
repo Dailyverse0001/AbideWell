@@ -1,4 +1,6 @@
 /* Abidewell — archive */
+import { loadMergedVerses } from './verse-data.js';
+
 const CFG = window.ABIDEWELL;
 const listEl = document.getElementById('archiveList');
 const countEl = document.getElementById('archiveCount');
@@ -42,26 +44,12 @@ function escapeHtml(value) {
 
 async function load() {
   const today = todayISO();
-  let verses = [];
-
   const sources = [
     CFG.data ? CFG.data + '?t=' + Date.now() : null,
     '../data/verses.json?t=' + Date.now()
   ].filter(Boolean);
 
-  for (const source of sources) {
-    try {
-      const res = await fetch(source, { cache: 'no-store' });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        verses = data;
-        break;
-      }
-    } catch {}
-  }
-
-  verses = verses
+  let verses = (await loadMergedVerses(sources))
     .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && typeof v.text === 'string')
     .filter((v) => v.date <= today)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));

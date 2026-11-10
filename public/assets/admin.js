@@ -6,6 +6,8 @@
  *  2. Through a server  — used on Vercel/Netlify, where ADMIN_PASSWORD is
  *     checked server-side and the token never touches the browser.
  */
+import { loadSchedule, mergeVerseLists } from './verse-data.js';
+
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
 
@@ -49,6 +51,9 @@ const els = {
   text: $('#text'),
   note: $('#note'),
   simplify: $('#simplify'),
+  randomTheme: $('#randomTheme'),
+  randomBtn: $('#randomBtn'),
+  randomHint: $('#randomHint'),
   autoFillBtn: $('#autoFillBtn'),
   postBtn: $('#postBtn'),
   clearBtn: $('#clearBtn'),
@@ -64,6 +69,7 @@ const els = {
 
 let secret = ''; // the token, held in memory only while unlocked
 let latestVerses = [];
+let scheduleEntries = [];
 
 /* ------------------------------------------------------------------ dates */
 
@@ -553,6 +559,42 @@ function resetForm() {
   setStatus('Draft');
 }
 
+function randomIndex(max) {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const value = new Uint32Array(1);
+    window.crypto.getRandomValues(value);
+    return Math.floor((value[0] / 4294967296) * max);
+  }
+  return Math.floor(Math.random() * max);
+}
+
+function fillScheduledPassage(passage) {
+  els.date.value = passage.date;
+  els.version.value = 'NKJV';
+  els.text.value = passage.text || '';
+  els.note.value = passage.note || '';
+  els.simplify.value = passage.simplify || '';
+  if (REF.loaded) applyReference(passage.reference);
+  else els.reference.value = passage.reference || '';
+  updatePreview();
+  setStatus('Random draft');
+  els.randomHint.textContent = `${passage.themeLabel} · ${passage.reference} · NKJV`;
+  toast('Random passage filled in.');
+}
+
+els.randomBtn.addEventListener('click', () => {
+  const theme = els.randomTheme.value;
+  const choices = scheduleEntries.filter((entry) => !theme || entry.theme === theme);
+  if (!choices.length) {
+    toast('No passage is available in that category.');
+    return;
+  }
+
+  const currentReference = els.reference.value.trim();
+  const alternatives = choices.filter((entry) => choices.length === 1 || entry.reference !== currentReference);
+  fillScheduledPassage(alternatives[randomIndex(alternatives.length)]);
+});
+
 els.clearBtn.addEventListener('click', () => {
   resetForm();
 });
@@ -1030,7 +1072,10 @@ els.postBtn.addEventListener('click', async () => {
       ? await directSave(verse)
       : await callApi({ action: 'save', verse });
 
-    latestVerses = Array.isArray(result.verses) ? result.verses : [];
+    const resultVerses = Array.isArray(result.verses) ? result.verses : [];
+    latestVerses = resultVerses.some((verse) => verse && verse.scheduled)
+      ? resultVerses
+      : mergeVerseLists(scheduleEntries, resultVerses);
     renderList(latestVerses);
 
     setStatus('Live soon', 'live');
@@ -1061,10 +1106,15 @@ function escapeHtml(value) {
 }
 
 function renderList(verses) {
-  const sorted = verses
-    .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date))
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-    .slice(0, 40);
+  const today = todayISO();
+  const valid = verses.filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date));
+  const upcoming = valid
+    .filter((v) => v.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const recent = valid
+    .filter((v) => v.date < today)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const sorted = upcoming.concat(recent).slice(0, 40);
 
   if (!sorted.length) {
     els.verseList.innerHTML = '<p class="empty">No verses yet.</p>';
@@ -1080,7 +1130,9 @@ function renderList(verses) {
             '<div class="list-ref">' + escapeHtml(v.reference) + '</div>' +
           '</div>' +
           '<button class="icon-btn" data-edit="' + escapeHtml(v.date) + '" type="button">Edit</button>' +
-          '<button class="icon-btn danger" data-delete="' + escapeHtml(v.date) + '" type="button">Delete</button>' +
+          (v.scheduled
+            ? '<span class="chip">Scheduled</span>'
+            : '<button class="icon-btn danger" data-delete="' + escapeHtml(v.date) + '" type="button">Delete</button>') +
         '</div>'
     )
     .join('');
@@ -1120,7 +1172,10 @@ function renderList(verses) {
           ? await directDelete(date)
           : await callApi({ action: 'delete', date });
 
-        latestVerses = Array.isArray(result.verses) ? result.verses : [];
+        const resultVerses = Array.isArray(result.verses) ? result.verses : [];
+        latestVerses = resultVerses.some((item) => item && item.scheduled)
+          ? resultVerses
+          : mergeVerseLists(scheduleEntries, resultVerses);
         renderList(latestVerses);
         toast('Deleted.');
       } catch (error) {
@@ -1134,9 +1189,14 @@ function renderList(verses) {
 
 async function loadList() {
   try {
+    if (!scheduleEntries.length) {
+      scheduleEntries = await loadSchedule();
+      els.randomBtn.disabled = !scheduleEntries.length;
+    }
+
     if (DIRECT && secret) {
       const file = await readFile();
-      latestVerses = sortNewestFirst(parseList(file && file.text));
+      latestVerses = mergeVerseLists(scheduleEntries, parseList(file && file.text));
       renderList(latestVerses);
       return;
     }
@@ -1151,7 +1211,9 @@ async function loadList() {
       if (!res.ok) continue;
       const data = await res.json();
       if (Array.isArray(data)) {
-        latestVerses = data;
+        latestVerses = data.some((verse) => verse && verse.scheduled)
+          ? data
+          : mergeVerseLists(scheduleEntries, data);
         renderList(latestVerses);
         return;
       }
@@ -1172,6 +1234,11 @@ function init() {
   els.date.value = todayISO();
   updatePreview();
   loadReference();
+  loadSchedule().then((schedule) => {
+    scheduleEntries = schedule;
+    els.randomBtn.disabled = !scheduleEntries.length;
+    if (!scheduleEntries.length) els.randomHint.textContent = 'The verified Random library could not be loaded.';
+  });
 
   if (DIRECT) {
     els.setupBox.hidden = false;

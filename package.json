@@ -8,7 +8,10 @@
     "build": "node scripts/make-icons.mjs",
     "icons": "node scripts/make-icons.mjs",
     "dev": "npx --yes serve public -l 4173",
-    "pages": "node scripts/make-pages.mjs .pages"
+    "pages": "node scripts/make-pages.mjs .pages",
+    "schedule:generate": "node scripts/generate-schedule.mjs",
+    "schedule:validate": "node scripts/validate-schedule.mjs",
+    "test": "node scripts/validate-schedule.mjs"
   },
   "engines": {
     "node": ">=18"

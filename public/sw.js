@@ -1,5 +1,5 @@
 /* Abidewell — offline shell. Bump CACHE when you change the design. */
-const CACHE = 'abidewell-v4';
+const CACHE = 'abidewell-v5';
 const ROOT = self.registration.scope;
 
 const SHELL = [
@@ -12,6 +12,8 @@ const SHELL = [
   'assets/app.js',
   'assets/archive.js',
   'assets/admin.js',
+  'assets/verse-data.js',
+  'data/schedule.json',
   'assets/icon.svg',
   'assets/icon-192.png',
   'assets/icon-512.png',
@@ -47,7 +49,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   /* Verse data: always try the network first so a new post shows up. */
-  if (url.pathname.endsWith('/data/verses.json')) {
+  if (url.pathname.endsWith('/data/verses.json') || url.pathname.endsWith('/data/schedule.json')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
