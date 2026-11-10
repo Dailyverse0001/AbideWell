@@ -39,6 +39,11 @@ const els = {
   logoutBtn: $('#logoutBtn'),
   date: $('#date'),
   reference: $('#reference'),
+  refBook: $('#refBook'),
+  refChapter: $('#refChapter'),
+  refVerse: $('#refVerse'),
+  refMode: $('#refMode'),
+  refVerseTo: $('#refVerseTo'),
   version: $('#version'),
   text: $('#text'),
   note: $('#note'),
@@ -487,68 +492,229 @@ function resetForm() {
   els.note.value = '';
   els.simplify.value = '';
   els.version.value = 'NKJV';
+
+  if (REF.loaded) {
+    els.refMode.value = 'one';
+    els.refVerseTo.hidden = true;
+    fillChapters(1);
+    els.refChapter.value = '1';
+    fillVerses(1);
+    els.refVerse.value = '1';
+    syncReference();
+  }
+
   updatePreview();
   setStatus('Draft');
 }
 
 els.clearBtn.addEventListener('click', () => {
   resetForm();
-  els.reference.focus();
+});
+
+/* ------------------------------------------------------- reference picker */
+
+const FREE_VERSIONS = { KJV: 'kjv', WEB: 'web', ASV: 'asv', BBE: 'bbe', YLT: 'ylt', DARBY: 'darby' };
+const REF = { books: [], loaded: false };
+
+function setOptions(select, items, selected) {
+  select.replaceChildren(
+    ...items.map(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      if (String(value) === String(selected)) option.selected = true;
+      return option;
+    })
+  );
+}
+
+function syncReference() {
+  const book = els.refBook.value;
+  const chapter = els.refChapter.value;
+  const verse = els.refVerse.value;
+
+  if (!book || !chapter || !verse) {
+    els.reference.value = '';
+    updatePreview();
+    return;
+  }
+
+  let reference = book + ' ' + chapter + ':' + verse;
+
+  if (els.refMode.value === 'range' && els.refVerseTo.value) {
+    const to = Number(els.refVerseTo.value);
+    if (to > Number(verse)) reference += '-' + to;
+  }
+
+  els.reference.value = reference;
+  updatePreview();
+}
+
+function currentBook() {
+  return REF.books.find((b) => b.name === els.refBook.value) || REF.books[0];
+}
+
+function fillChapters(selected) {
+  const book = currentBook();
+  if (!book) return;
+  const counts = book.chapters;
+  setOptions(els.refChapter, counts.map((n, i) => [i + 1, 'Chapter ' + (i + 1)]), selected || 1);
+  fillVerses(selected ? 1 : 1);
+}
+
+function fillVerses(selected) {
+  const book = currentBook();
+  if (!book) return;
+  const chapter = Number(els.refChapter.value) || 1;
+  const total = book.chapters[chapter - 1] || 1;
+  setOptions(els.refVerse, Array.from({ length: total }, (_, i) => [i + 1, 'Verse ' + (i + 1)]), selected || 1);
+  fillRangeEnd();
+}
+
+function fillRangeEnd() {
+  const book = currentBook();
+  if (!book) return;
+  const chapter = Number(els.refChapter.value) || 1;
+  const total = book.chapters[chapter - 1] || 1;
+  const from = Number(els.refVerse.value) || 1;
+  const items = [];
+
+  for (let v = from; v <= total; v += 1) items.push([v, v === from ? 'to verse ' + v : 'to verse ' + v]);
+
+  setOptions(els.refVerseTo, items, from);
+}
+
+async function loadReference() {
+  if (REF.loaded) return;
+
+  for (const path of ['../data/reference.json', 'data/reference.json']) {
+    try {
+      const res = await fetch(path, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data && Array.isArray(data.books)) {
+        REF.books = data.books;
+        REF.loaded = true;
+        break;
+      }
+    } catch {}
+  }
+
+  if (!REF.loaded) return;
+
+  setOptions(els.refBook, REF.books.map((b) => [b.name, b.name]), els.refBook.value || 'John');
+  fillChapters();
+  syncReference();
+}
+
+/* Put an existing reference like "Isaiah 41:10-12" back into the pickers. */
+function applyReference(reference) {
+  const hit = String(reference || '').match(/^(.+?)\s*(\d+):(\d+)(?:-(\d+))?$/);
+  if (!hit || !REF.loaded) return;
+
+  const [, bookName, chapter, verse, to] = hit;
+  const book = REF.books.find((b) => b.name.toLowerCase() === bookName.trim().toLowerCase());
+  if (!book) return;
+
+  els.refBook.value = book.name;
+  fillChapters(Number(chapter));
+  els.refChapter.value = String(Number(chapter));
+  fillVerses(Number(verse));
+  els.refVerse.value = String(Number(verse));
+
+  if (to) {
+    els.refMode.value = 'range';
+    els.refVerseTo.hidden = false;
+    fillRangeEnd();
+    els.refVerseTo.value = String(Number(to));
+  } else {
+    els.refMode.value = 'one';
+    els.refVerseTo.hidden = true;
+  }
+
+  syncReference();
+}
+
+els.refBook.addEventListener('change', () => {
+  fillChapters();
+  syncReference();
+});
+
+els.refChapter.addEventListener('change', () => {
+  fillVerses();
+  syncReference();
+});
+
+els.refVerse.addEventListener('change', () => {
+  fillRangeEnd();
+  syncReference();
+});
+
+els.refVerseTo.addEventListener('change', syncReference);
+
+els.refMode.addEventListener('change', () => {
+  els.refVerseTo.hidden = els.refMode.value !== 'range';
+  if (!els.refVerseTo.hidden) fillRangeEnd();
+  syncReference();
 });
 
 /* --------------------------------------------------------------- auto fill */
 
-async function lookup(reference) {
-  const tried = [];
+async function lookup(reference, version) {
+  const translation = FREE_VERSIONS[version] || 'kjv';
+  const res = await fetch(
+    'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=' + translation
+  ).catch(() => null);
 
-  for (const translation of ['kjv', 'web']) {
-    const res = await fetch(
-      'https://bible-api.com/' + encodeURIComponent(reference) + '?translation=' + translation
-    ).catch(() => null);
+  if (!res || !res.ok) throw new Error('not found');
 
-    if (res && res.ok) {
-      const data = await res.json();
-      if (data && String(data.text || '').trim()) {
-        return { ...data, translation };
-      }
-    }
-    tried.push(translation);
-  }
+  const data = await res.json();
+  if (!data || !String(data.text || '').trim()) throw new Error('empty');
 
-  throw new Error('not found');
+  return { data, translation };
 }
 
-els.autoFillBtn.addEventListener('click', async () => {
+async function autoFill(silent) {
   const reference = els.reference.value.trim();
 
   if (!reference) {
-    toast('Type a reference first, like John 3:16');
-    els.reference.focus();
+    toast('Pick a book, chapter and verse first.');
     return;
   }
 
   els.autoFillBtn.disabled = true;
   els.autoFillBtn.textContent = 'Looking…';
 
+  const wanted = els.version.value;
+
   try {
-    const data = await lookup(reference);
+    const { data, translation } = await lookup(reference, wanted);
     const text = String(data.text || '').replace(/\s+/g, ' ').trim();
 
     if (!text) throw new Error('empty');
 
     els.text.value = text;
-    els.reference.value = data.reference || reference;
-    els.version.value = data.translation === 'web' ? 'WEB' : 'KJV';
-    updatePreview();
-    toast('Filled in ' + (data.translation === 'web' ? 'WEB' : 'KJV') + '. Writing the explanation…');
 
+    if (FREE_VERSIONS[wanted] && translation === FREE_VERSIONS[wanted]) {
+      if (!silent) toast('Filled in ' + wanted + '. Writing the explanation…');
+    } else {
+      toast(wanted + ' is copyrighted — filled ' + translation.toUpperCase() + ' instead. Paste the ' + wanted + ' text over it.');
+    }
+
+    updatePreview();
     await fillExplanation();
   } catch {
-    toast('Could not find that. Type the verse by hand.');
+    if (!silent) toast('Could not fetch that verse. Paste it by hand.');
   } finally {
     els.autoFillBtn.disabled = false;
-    els.autoFillBtn.textContent = 'Auto-fill';
+    els.autoFillBtn.textContent = 'Auto-fill verse';
   }
+}
+
+els.autoFillBtn.addEventListener('click', () => autoFill(false));
+
+els.version.addEventListener('change', () => {
+  if (els.reference.value.trim()) autoFill(true);
 });
 
 /* ------------------------------------------------------- explanation library */
@@ -824,7 +990,8 @@ function renderList(verses) {
       if (!verse) return;
 
       els.date.value = verse.date;
-      els.reference.value = verse.reference || '';
+      if (REF.loaded) applyReference(verse.reference);
+      else els.reference.value = verse.reference || '';
       els.version.value = verse.version || 'NKJV';
       els.text.value = verse.text || '';
       els.note.value = verse.note || '';
@@ -902,6 +1069,7 @@ els.refreshBtn.addEventListener('click', () => {
 function init() {
   els.date.value = todayISO();
   updatePreview();
+  loadReference();
 
   if (DIRECT) {
     els.setupBox.hidden = false;

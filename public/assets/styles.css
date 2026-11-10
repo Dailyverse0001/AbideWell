@@ -665,6 +665,24 @@ code {
 
 .setup .pill { margin-top: 14px; }
 
+.ref-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 8px;
+}
+
+.ref-grid--range {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 8px;
+}
+
+.ref-grid select { width: 100%; }
+
+@media (max-width: 520px) {
+  .ref-grid { grid-template-columns: 1fr 1fr; }
+  .ref-grid select:first-child { grid-column: 1 / -1; }
+}
+
 label {
   display: block;
   margin: 16px 0 6px;
