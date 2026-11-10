@@ -7,6 +7,10 @@ window.ABIDEWELL = {
   // The admin screen tries these in order, so it works on Vercel and Netlify.
   api: ['/api/post', '/.netlify/functions/post'],
 
+  // Password check used before the posting desk is shown. The passphrase is
+  // verified by the server and is never stored in a browser file.
+  auth: ['/api/auth', '/.netlify/functions/auth'],
+
   // Where the verse file lives. Used when posting straight to GitHub
   // (GitHub Pages has no server, so the browser talks to the GitHub API).
   github: {

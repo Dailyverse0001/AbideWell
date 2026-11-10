@@ -31,6 +31,7 @@ const els = {
   editorView: $('#editorView'),
   loginForm: $('#loginForm'),
   password: $('#password'),
+  unlockBtn: $('#unlockBtn'),
   loginLede: $('#loginLede'),
   loginHint: $('#loginHint'),
   setupBox: $('#setupBox'),
@@ -371,16 +372,61 @@ async function testToken(value) {
   if (!res.ok) throw new Error(githubError(res.status));
 }
 
+async function verifyServerPassphrase(passphrase) {
+  const endpoints = Array.isArray(CFG.auth) && CFG.auth.length
+    ? CFG.auth
+    : ['/api/auth', '/.netlify/functions/auth'];
+  let lastError = 'Could not reach the password check.';
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + passphrase },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.ok === true) return;
+      if (res.status === 401) throw new Error('That passphrase is not right.');
+      if (res.status === 429) throw new Error('Too many attempts. Wait a few minutes.');
+      if (res.status === 404 || res.status === 405) continue;
+
+      lastError = data.error || 'Could not check the passphrase.';
+    } catch (error) {
+      if (error && /passphrase|attempts/i.test(error.message || '')) throw error;
+      lastError = (error && error.message) || lastError;
+    }
+  }
+
+  throw new Error(lastError);
+}
+
 els.loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const passphrase = els.password.value;
   if (!passphrase) return;
 
   if (!DIRECT) {
-    secret = passphrase;
-    els.password.value = '';
-    showEditor();
-    toast('Unlocked');
+    els.password.disabled = true;
+    els.unlockBtn.disabled = true;
+    els.unlockBtn.textContent = 'Checking…';
+
+    try {
+      await verifyServerPassphrase(passphrase);
+      secret = passphrase;
+      els.password.value = '';
+      showEditor();
+      toast('Unlocked');
+    } catch (error) {
+      secret = '';
+      toast(error.message || 'That passphrase is not right.');
+      els.password.select();
+    } finally {
+      els.password.disabled = false;
+      els.unlockBtn.disabled = false;
+      els.unlockBtn.textContent = 'Unlock';
+    }
     return;
   }
 
@@ -1138,7 +1184,7 @@ function init() {
       els.loginHint.textContent = 'This phone is not connected yet. Open “First time on this phone”.';
     }
   } else {
-    els.loginLede.textContent = 'Enter your passphrase once. This phone will remember it.';
+    els.loginLede.textContent = 'Enter your passphrase to open the posting desk.';
     els.loginHint.textContent = 'This is the passphrase you set as ADMIN_PASSWORD when you deployed.';
   }
 
