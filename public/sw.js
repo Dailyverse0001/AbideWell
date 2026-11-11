@@ -1,5 +1,5 @@
-/* Abidewell — offline shell. Bump CACHE when you change the design. */
-const CACHE = 'abidewell-v5';
+/* Abidewell - offline shell. Bump CACHE when you change the design. */
+const CACHE = 'abidewell-v11-folio2';
 const ROOT = self.registration.scope;
 
 const SHELL = [
@@ -7,17 +7,18 @@ const SHELL = [
   'index.html',
   'archive.html',
   'admin.html',
-  'assets/styles.css',
   'assets/config.js',
   'assets/app.js',
+  'assets/folio.css',
+  'assets/scene.js',
   'assets/archive.js',
   'assets/admin.js',
   'assets/verse-data.js',
-  'data/schedule.json',
   'assets/icon.svg',
   'assets/icon-192.png',
   'assets/icon-512.png',
-  'manifest.webmanifest'
+  'manifest.webmanifest',
+  'data/schedule.json'
 ].map((path) => new URL(path, ROOT).href);
 
 self.addEventListener('install', (event) => {

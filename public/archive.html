@@ -4,48 +4,61 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Archive — Abidewell</title>
-  <meta name="description" content="Every daily reading, kept." />
-  <meta name="theme-color" content="#ede4d3" />
+  <meta name="description" content="Every reading, kept in the sky." />
+  <meta name="theme-color" content="#f5f3ee" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/folio.css" />
 </head>
-<body>
-  <div class="paper" aria-hidden="true"></div>
-  <div class="burst" aria-hidden="true"></div>
+<body class="is-immersive is-archive">
+  <!-- the living sky, dimmer here: the ledger is the star -->
+  <canvas class="scene" id="scene" aria-hidden="true"></canvas>
 
-  <nav class="rail rail--left" aria-label="Sections">
-    <a class="rail-link" href="/">Today</a>
-    <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link is-current" href="/archive.html">Archive</a>
-    <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/admin.html">Post</a>
-  </nav>
+  <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span></div>
 
-  <aside class="rail rail--right" aria-hidden="true">
-    <span class="wordmark">Abidewell</span>
-    <span class="rail-rule"></span>
-    <span class="issue">Archive</span>
-  </aside>
+  <header class="mast">
+    <a class="brand" href="/index.html" aria-label="Abidewell home">
+      <span class="brand-glyph" aria-hidden="true"></span>
+      Abidewell
+    </a>
+    <span class="issue"><span class="issue-no" id="archiveCount">—</span><span class="issue-word">readings</span></span>
+  </header>
 
-  <main class="archive-page">
-    <header class="archive-head">
-      <p class="eyebrow">The archive</p>
-      <h1>Every reading,<br />kept.</h1>
-      <p class="archive-count" id="archiveCount">—</p>
-    </header>
+  <main class="ledger">
+    <div class="ledger-head">
+      <h1 class="ledger-title">The Archive</h1>
+      <p class="ledger-sub" id="archiveSub">—</p>
+    </div>
 
-    <div class="archive-list" id="archiveList">
+    <label class="find" for="archiveSearch">
+      <span class="find-icon" aria-hidden="true">⌕</span>
+      <input id="archiveSearch" type="search" placeholder="Find a book, verse, or theme…" autocomplete="off" />
+      <button class="find-clear" id="archiveClear" type="button" hidden aria-label="Clear search">✕</button>
+    </label>
+
+    <div class="ledger-list" id="archiveList">
       <p class="empty">Loading…</p>
     </div>
   </main>
 
+  <footer class="margin">
+    <nav class="dots" aria-label="Sections">
+      <a class="dot" href="/index.html">Today</a>
+      <a class="dot is-current" href="/archive.html">Archive</a>
+      <a class="dot" href="/admin.html">Post</a>
+    </nav>
+    <p class="colophon">Soli Deo gloria</p>
+  </footer>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="/assets/config.js"></script>
+  <script src="/assets/scene.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
   <script src="/assets/archive.js" type="module"></script>
 </body>
 </html>

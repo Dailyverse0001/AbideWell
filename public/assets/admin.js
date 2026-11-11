@@ -1,10 +1,13 @@
-/* Abidewell — posting screen
+/* Abidewell — posting screen (Folio v2, the living sky)
  *
  * Two ways to post:
  *  1. Direct to GitHub  — used on GitHub Pages. The GitHub token is encrypted
  *     with the passphrase and kept only in this phone's storage.
  *  2. Through a server  — used on Vercel/Netlify, where ADMIN_PASSWORD is
  *     checked server-side and the token never touches the browser.
+ *
+ * The desk lives inside the same particle scene as the home page: the sky
+ * behind it retints to the day you are editing.
  */
 import { loadSchedule, mergeVerseLists } from './verse-data.js';
 
@@ -41,35 +44,41 @@ const els = {
   connectBtn: $('#connectBtn'),
   logoutBtn: $('#logoutBtn'),
   date: $('#date'),
+  version: $('#version'),
   reference: $('#reference'),
   refBook: $('#refBook'),
   refChapter: $('#refChapter'),
   refVerse: $('#refVerse'),
   refMode: $('#refMode'),
   refVerseTo: $('#refVerseTo'),
-  version: $('#version'),
   text: $('#text'),
   note: $('#note'),
   simplify: $('#simplify'),
-  randomTheme: $('#randomTheme'),
+  catAny: $('#catAny'),
+  randomThemeWrap: $('#randomThemeWrap'),
   randomBtn: $('#randomBtn'),
   randomHint: $('#randomHint'),
+  mergeLine: $('#mergeLine'),
   autoFillBtn: $('#autoFillBtn'),
   postBtn: $('#postBtn'),
   clearBtn: $('#clearBtn'),
   refreshBtn: $('#refreshBtn'),
   statusChip: $('#statusChip'),
+  statusLine: $('#statusLine'),
   postHint: $('#postHint'),
   verseList: $('#verseList'),
   pvMeta: $('#pvMeta'),
   pvText: $('#pvText'),
   pvRef: $('#pvRef'),
-  toast: $('#toast')
+  toast: $('#toast'),
+  scene: $('#scene'),
+  deskNo: $('#deskNo')
 };
 
 let secret = ''; // the token, held in memory only while unlocked
 let latestVerses = [];
 let scheduleEntries = [];
+let scene = null;
 
 /* ------------------------------------------------------------------ dates */
 
@@ -82,6 +91,11 @@ function todayISO() {
   }).format(new Date());
 }
 
+function dayOfYear(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 86400000) + 1;
+}
+
 function prettyDate(iso) {
   return new Intl.DateTimeFormat('en-GB', {
     weekday: 'short',
@@ -89,6 +103,30 @@ function prettyDate(iso) {
     month: 'short',
     year: 'numeric'
   }).format(new Date(iso + 'T12:00:00'));
+}
+
+/* the 7-colour day cycle, shared with the home page */
+const DAY_COLORS = [
+  ['#3f6cf0', '#2a4fd0'],
+  ['#f0566e', '#c73a52'],
+  ['#f59f1e', '#d97d0a'],
+  ['#1fa08e', '#127a6b'],
+  ['#8a4fd0', '#6a33ac'],
+  ['#3aa6d8', '#2384b4'],
+  ['#4f9e3f', '#3a7d2e']
+];
+
+function paintDeskNo(iso) {
+  if (!els.deskNo) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) {
+    els.deskNo.textContent = '——';
+    return;
+  }
+  els.deskNo.textContent = String(dayOfYear(iso)).padStart(3, '0');
+  if (scene) {
+    const [hero, deep] = DAY_COLORS[dayOfYear(iso) % DAY_COLORS.length];
+    scene.setColors(hero, deep, '#f5f3ee');
+  }
 }
 
 /* ------------------------------------------------------------------ toast */
@@ -102,8 +140,9 @@ function toast(message) {
 }
 
 function setStatus(text, kind) {
+  els.statusLine.textContent = text;
+  els.statusLine.className = 'status' + (kind ? ' ' + kind : '');
   els.statusChip.textContent = text;
-  els.statusChip.className = 'chip' + (kind ? ' ' + kind : '');
 }
 
 /* ------------------------------------------------------ encryption helpers */
@@ -426,19 +465,19 @@ els.loginForm.addEventListener('submit', async (e) => {
       toast('Unlocked');
     } catch (error) {
       secret = '';
-      toast(error.message || 'That passphrase is not right.');
+      els.loginHint.textContent = error.message || 'That passphrase is not right.';
       els.password.select();
     } finally {
       els.password.disabled = false;
       els.unlockBtn.disabled = false;
-      els.unlockBtn.textContent = 'Unlock';
+      els.unlockBtn.textContent = 'Turn the key';
     }
     return;
   }
 
   const vault = readVault();
   if (!vault) {
-    toast('Connect this phone first, below.');
+    els.loginHint.textContent = 'Connect this phone first, below.';
     els.setupBox.open = true;
     return;
   }
@@ -453,7 +492,7 @@ els.loginForm.addEventListener('submit', async (e) => {
     showEditor();
     toast('Unlocked');
   } catch {
-    toast('That passphrase is not right.');
+    els.loginHint.textContent = 'That passphrase is not right.';
     els.password.select();
   } finally {
     els.password.disabled = false;
@@ -465,17 +504,17 @@ els.connectBtn.addEventListener('click', async () => {
   const token = els.setupToken.value.trim();
 
   if (!passphrase) {
-    toast('Type the passphrase first.');
+    els.loginHint.textContent = 'Type the passphrase first.';
     els.password.focus();
     return;
   }
   if (!token) {
-    toast('Paste the token.');
+    els.loginHint.textContent = 'Paste the token.';
     els.setupToken.focus();
     return;
   }
   if (!(window.crypto && window.crypto.subtle)) {
-    toast('This browser cannot store the key. Use Chrome.');
+    els.loginHint.textContent = 'This browser cannot store the key. Use Chrome.';
     return;
   }
 
@@ -487,9 +526,9 @@ els.connectBtn.addEventListener('click', async () => {
     writeVault(await lockSecret(token, passphrase));
     els.setupToken.value = '';
     els.setupBox.open = false;
-    toast('This phone is connected. Now tap Unlock.');
+    els.loginHint.textContent = 'This phone is connected. Now tap "Turn the key".';
   } catch (error) {
-    toast(error.message || 'Could not connect.');
+    els.loginHint.textContent = error.message || 'Could not connect.';
   } finally {
     els.connectBtn.disabled = false;
     els.connectBtn.textContent = 'Connect this phone';
@@ -529,11 +568,13 @@ function updatePreview() {
   els.pvRef.textContent = verse.reference
     ? verse.reference + (verse.version ? '  ·  ' + verse.version : '')
     : '';
+
+  paintDeskNo(verse.date);
 }
 
 ['input', 'change'].forEach((eventName) => {
   [els.date, els.reference, els.version, els.text, els.note, els.simplify].forEach((field) => {
-    field.addEventListener(eventName, updatePreview);
+    if (field) field.addEventListener(eventName, updatePreview);
   });
 });
 
@@ -568,6 +609,61 @@ function randomIndex(max) {
   return Math.floor(Math.random() * max);
 }
 
+/* the 25 categories, in the same order the schedule was written */
+const CATEGORIES = [
+  ['promise', "God's Promise"],
+  ['faith', 'Faith and Trust'],
+  ['blessing', 'Blessing'],
+  ['hope', 'Hope and Encouragement'],
+  ['love', 'Love of God'],
+  ['strength', 'Strength and Courage'],
+  ['peace', 'Peace of Mind'],
+  ['healing', 'Healing and Restoration'],
+  ['protection', 'Protection and Safety'],
+  ['wisdom', 'Wisdom and Guidance'],
+  ['forgiveness', 'Forgiveness and Mercy'],
+  ['joy', 'Joy and Happiness'],
+  ['patience', 'Patience and Perseverance'],
+  ['gratitude', 'Gratitude and Thanksgiving'],
+  ['comfort', 'Comfort in Difficult Times'],
+  ['fear', 'Overcoming Fear'],
+  ['prosperity', 'Success and Prosperity'],
+  ['prayer', 'Prayer and Answered Prayers'],
+  ['faithfulness', "God's Faithfulness"],
+  ['beginnings', 'New Beginnings'],
+  ['temptation', 'Victory Over Temptation'],
+  ['purpose', 'Purpose and Calling'],
+  ['family', 'Family and Relationships'],
+  ['miracles', "Miracles and God's Power"],
+  ['salvation', 'Eternal Life and Salvation']
+];
+
+function buildCategoryChips() {
+  const wrap = els.randomThemeWrap;
+  if (!wrap) return;
+
+  for (const [value, label] of CATEGORIES) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.dataset.theme = value;
+    chip.textContent = label;
+    wrap.appendChild(chip);
+  }
+
+  wrap.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip[data-theme]');
+    if (!chip) return;
+    wrap.querySelectorAll('.chip').forEach((c) => c.classList.remove('is-active'));
+    chip.classList.add('is-active');
+  });
+}
+
+function activeCategory() {
+  const active = els.randomThemeWrap.querySelector('.chip.is-active');
+  return active ? active.dataset.theme : '';
+}
+
 function fillScheduledPassage(passage) {
   els.date.value = passage.date;
   els.version.value = 'NKJV';
@@ -578,12 +674,12 @@ function fillScheduledPassage(passage) {
   else els.reference.value = passage.reference || '';
   updatePreview();
   setStatus('Random draft');
-  els.randomHint.textContent = `${passage.themeLabel} · ${passage.reference} · NKJV`;
+  els.randomHint.textContent = (passage.themeLabel || 'Random') + ' · ' + passage.reference + ' · NKJV';
   toast('Random passage filled in.');
 }
 
 els.randomBtn.addEventListener('click', () => {
-  const theme = els.randomTheme.value;
+  const theme = activeCategory();
   const choices = scheduleEntries.filter((entry) => !theme || entry.theme === theme);
   if (!choices.length) {
     toast('No passage is available in that category.');
@@ -668,7 +764,7 @@ function fillRangeEnd() {
   const from = Number(els.refVerse.value) || 1;
   const items = [];
 
-  for (let v = from; v <= total; v += 1) items.push([v, v === from ? 'to verse ' + v : 'to verse ' + v]);
+  for (let v = from; v <= total; v += 1) items.push([v, 'to verse ' + v]);
 
   setOptions(els.refVerseTo, items, from);
 }
@@ -676,7 +772,7 @@ function fillRangeEnd() {
 async function loadReference() {
   if (REF.loaded) return;
 
-  for (const path of ['../data/reference.json', 'data/reference.json']) {
+  for (const path of ['data/reference.json', '../data/reference.json']) {
     try {
       const res = await fetch(path, { cache: 'no-store' });
       if (!res.ok) continue;
@@ -767,7 +863,7 @@ async function localVerse(version, reference) {
   const dir = 'data/versions/' + code;
   const candidates = [slug, slug + 's', slug.replace(/s$/, '')];
 
-  for (const base of ['../' + dir + '/', dir + '/']) {
+  for (const base of [dir + '/', '../' + dir + '/']) {
     for (const name of candidates) {
       try {
         const res = await fetch(base + name + '.json', { cache: 'no-store' });
@@ -892,8 +988,8 @@ async function loadExplain() {
 
   for (const path of [
     CFG.explain ? CFG.explain + '?t=' + Date.now() : null,
-    '../data/explain.json',
-    'data/explain.json'
+    'data/explain.json',
+    '../data/explain.json'
   ].filter(Boolean)) {
     try {
       const res = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
@@ -957,7 +1053,7 @@ async function simpleFromLibrary(reference) {
   if (data === undefined) {
     data = null;
 
-    for (const path of ['../data/simple/', 'data/simple/']) {
+    for (const path of ['data/simple/', '../data/simple/']) {
       try {
         const res = await fetch(path + slug + '.json', { cache: 'no-store' });
         if (!res.ok) continue;
@@ -1203,6 +1299,7 @@ async function loadList() {
 
     const sources = [
       CFG.data ? CFG.data + '?t=' + Date.now() : null,
+      'data/verses.json?t=' + Date.now(),
       '../data/verses.json?t=' + Date.now()
     ].filter(Boolean);
 
@@ -1228,12 +1325,24 @@ els.refreshBtn.addEventListener('click', () => {
   toast('Refreshed');
 });
 
+/* ------------------------------------------------------------------- scene */
+
+function initScene() {
+  if (!window.AbidewellScene || !els.scene) return;
+  scene = window.AbidewellScene.init(els.scene, { dense: false, interactive: true });
+  window.AbidewellScene.initChrome();
+}
+
 /* ------------------------------------------------------------------- init */
 
 function init() {
   els.date.value = todayISO();
   updatePreview();
   loadReference();
+  buildCategoryChips();
+  initScene();
+  paintDeskNo(todayISO());
+
   loadSchedule().then((schedule) => {
     scheduleEntries = schedule;
     els.randomBtn.disabled = !scheduleEntries.length;
@@ -1248,7 +1357,7 @@ function init() {
 
     if (!readVault()) {
       els.setupBox.open = true;
-      els.loginHint.textContent = 'This phone is not connected yet. Open “First time on this phone”.';
+      els.loginHint.textContent = 'This phone is not connected yet. Open "First time on this phone".';
     }
   } else {
     els.loginLede.textContent = 'Enter your passphrase to open the posting desk.';

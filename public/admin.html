@@ -5,83 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Post a verse — Abidewell</title>
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="theme-color" content="#ede4d3" />
+  <meta name="theme-color" content="#3f6cf0" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/folio.css" />
 </head>
-<body class="admin-body">
-  <div class="paper" aria-hidden="true"></div>
-  <div class="burst" aria-hidden="true"></div>
+<body class="is-immersive is-admin">
+  <!-- the living sky, dimmer here: the desk is the star -->
+  <canvas class="scene" id="scene" aria-hidden="true"></canvas>
 
-  <nav class="rail rail--left" aria-label="Sections">
-    <a class="rail-link" href="/">Today</a>
-    <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/archive.html">Archive</a>
-    <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link is-current" href="/admin.html">Post</a>
-  </nav>
+  <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span></div>
 
-  <aside class="rail rail--right" aria-hidden="true">
-    <span class="wordmark">Abidewell</span>
-    <span class="rail-rule"></span>
-    <span class="issue">Post</span>
-  </aside>
+  <header class="mast">
+    <a class="brand" href="/index.html" aria-label="Abidewell home">
+      <span class="brand-glyph" aria-hidden="true"></span>
+      Abidewell
+    </a>
+    <span class="issue"><span class="issue-no" id="deskNo">—</span><span class="issue-word">the desk</span></span>
+  </header>
 
-  <main class="admin-shell">
-    <div class="panel-head" style="margin-top:26px">
-      <h1 style="font-family:var(--serif);font-weight:500;font-size:1.4rem;margin:0">Post a verse</h1>
-      <button class="pill small" id="logoutBtn" type="button" hidden>Forget this phone</button>
-    </div>
-
-    <section class="panel login-panel" id="loginView">
-      <h2>Unlock</h2>
-      <p class="lede" id="loginLede">Enter the passphrase to open the desk.</p>
+  <main class="desk">
+    <!-- the password gate -->
+    <section class="gate" id="loginView">
+      <p class="gate-title">The desk is kept.</p>
+      <p class="gate-note" id="loginLede">Enter the passphrase to open the posting desk.</p>
 
       <form id="loginForm">
-        <label for="password">Passphrase</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
-        <button class="btn-primary" id="unlockBtn" type="submit">Unlock</button>
+        <label class="gate-field">
+          <span class="field-label">Passphrase</span>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+        </label>
+        <div class="panel-actions" style="justify-content:center">
+          <button class="key key--primary magnet" id="unlockBtn" type="submit">Turn the key</button>
+          <button class="key key--ghost" id="logoutBtn" type="button" hidden>Forget this phone</button>
+        </div>
       </form>
 
-      <p class="hint" id="loginHint"></p>
+      <p class="gate-status" id="loginHint"></p>
 
       <details class="setup" id="setupBox" hidden>
         <summary>First time on this phone</summary>
-
-        <p class="hint">
+        <p class="gate-note">
           Type the passphrase above, then paste a GitHub token below. The token is scrambled with that
           passphrase and kept only on this phone — it is never written into the site.
         </p>
-
-        <label for="setupToken">GitHub token</label>
-        <input id="setupToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" />
-
-        <p class="hint">
-          Needs <b>Contents: Read and write</b> on the AbideWell repository only.
-        </p>
-
-        <button class="pill" id="connectBtn" type="button">Connect this phone</button>
+        <label class="gate-field">
+          <span class="field-label">GitHub token</span>
+          <input id="setupToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" />
+        </label>
+        <button class="key key--ghost" id="connectBtn" type="button">Connect this phone</button>
       </details>
     </section>
 
+    <!-- the composer -->
     <section id="editorView" hidden>
-      <section class="panel">
+      <form class="panel" id="postForm" novalidate>
         <div class="panel-head">
-          <h2>Today's reading</h2>
-          <span class="chip" id="statusChip">Draft</span>
+          <h2 class="panel-title">Today's reading</h2>
+          <span class="issue"><span class="issue-no" id="statusChip">Draft</span></span>
         </div>
 
         <div class="grid-2">
-          <div>
-            <label for="date">Date</label>
-            <input id="date" type="date" />
-          </div>
-          <div>
-            <label for="version">Version</label>
+          <label class="field">
+            <span class="field-label">Date</span>
+            <input id="date" type="date" required />
+          </label>
+          <label class="field">
+            <span class="field-label">Version</span>
             <select id="version">
               <option value="NKJV">NKJV</option>
               <option value="NIV">NIV</option>
@@ -98,112 +92,106 @@
               <option value="DARBY" data-free="1">DARBY</option>
               <option value="OTHER">Other</option>
             </select>
-          </div>
+          </label>
         </div>
 
-        <div class="grid-2">
-          <div>
-            <label for="randomTheme">Random category</label>
-            <select id="randomTheme">
-              <option value="">Any category</option>
-              <option value="promise">God’s Promise</option>
-              <option value="faith">Faith and Trust</option>
-              <option value="blessing">Blessing</option>
-              <option value="hope">Hope and Encouragement</option>
-              <option value="love">Love of God</option>
-              <option value="strength">Strength and Courage</option>
-              <option value="peace">Peace of Mind</option>
-              <option value="healing">Healing and Restoration</option>
-              <option value="protection">Protection and Safety</option>
-              <option value="wisdom">Wisdom and Guidance</option>
-              <option value="forgiveness">Forgiveness and Mercy</option>
-              <option value="joy">Joy and Happiness</option>
-              <option value="patience">Patience and Perseverance</option>
-              <option value="gratitude">Gratitude and Thanksgiving</option>
-              <option value="comfort">Comfort in Difficult Times</option>
-              <option value="fear">Overcoming Fear</option>
-              <option value="prosperity">Success and Prosperity</option>
-              <option value="prayer">Prayer and Answered Prayers</option>
-              <option value="faithfulness">God’s Faithfulness</option>
-              <option value="beginnings">New Beginnings</option>
-              <option value="temptation">Victory Over Temptation</option>
-              <option value="purpose">Purpose and Calling</option>
-              <option value="family">Family and Relationships</option>
-              <option value="miracles">Miracles and God’s Power</option>
-              <option value="salvation">Eternal Life and Salvation</option>
+        <!-- 25-category Random: the verified NKJV schedule as one tap -->
+        <div class="field">
+          <span class="field-label">Random category</span>
+          <div class="cat-strip" id="catStrip" role="group" aria-label="Random category">
+            <span class="cat-chips" id="randomThemeWrap">
+              <button type="button" class="chip is-active" data-theme="" id="catAny">Any</button>
+              <!-- the 25 categories are filled in by admin.js -->
+            </span>
+          </div>
+          <div class="random-row">
+            <button class="random-btn magnet" id="randomBtn" type="button" disabled>Random</button>
+            <span class="random-drawn" id="randomHint"></span>
+          </div>
+          <p class="merge-line" id="mergeLine">Random draws from the verified NKJV schedule and fills the complete passage and explanation.</p>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Reference</span>
+          <input id="reference" type="hidden" />
+          <div class="ref-grid">
+            <select id="refBook" aria-label="Book"></select>
+            <select id="refChapter" aria-label="Chapter"></select>
+            <select id="refVerse" aria-label="Verse"></select>
+          </div>
+          <div class="ref-grid ref-grid--range">
+            <select id="refMode" aria-label="How many verses">
+              <option value="one">Single verse</option>
+              <option value="range">Two or more</option>
             </select>
+            <select id="refVerseTo" aria-label="Last verse" hidden></select>
           </div>
-          <div>
-            <label aria-hidden="true">Choose a passage</label>
-            <button class="pill" id="randomBtn" type="button" style="width:100%" disabled>Random</button>
-          </div>
-        </div>
-        <p class="hint" id="randomHint">Random uses the verified NKJV schedule and fills the complete passage and explanation.</p>
-
-        <label for="refBook">Reference</label>
-        <input id="reference" type="hidden" />
-        <div class="ref-grid">
-          <select id="refBook" aria-label="Book"></select>
-          <select id="refChapter" aria-label="Chapter"></select>
-          <select id="refVerse" aria-label="Verse"></select>
-        </div>
-
-        <div class="ref-grid ref-grid--range">
-          <select id="refMode" aria-label="How many verses">
-            <option value="one">Single verse</option>
-            <option value="range">Two or more</option>
-          </select>
-          <select id="refVerseTo" aria-label="Last verse" hidden></select>
-        </div>
-
-        <p class="hint">Pick the book, chapter and verse — no typing. Choose “Two or more” for a range.</p>
-
-        <div class="panel-actions" style="margin-top:12px">
-          <button class="pill" id="autoFillBtn" type="button">Auto-fill verse</button>
-        </div>
-        <p class="hint">NKJV, KJV, WEB, ASV, BBE, YLT and DARBY fill in automatically. NIV, ESV, NLT and NASB are copyrighted with no free source — pick the label and paste that text.</p>
-
-        <label for="text">Verse text</label>
-        <textarea id="text" rows="7" placeholder="Paste or type the verse…"></textarea>
-
-        <label for="note">Short reflection <span class="muted">(optional)</span></label>
-        <input id="note" maxlength="240" placeholder="One line to sit with today" />
-
-        <label for="simplify">Simple explanation <span class="muted">(optional)</span></label>
-        <textarea id="simplify" rows="3" maxlength="800" placeholder="Explain this verse in plain words, the way you would tell a friend."></textarea>
-        <p class="hint">This is what the “Simplify this verse” button shows.</p>
+        </label>
 
         <div class="panel-actions">
-          <button class="btn-primary" id="postBtn" type="button">Post verse</button>
-          <button class="pill" id="clearBtn" type="button">Clear</button>
+          <button class="random-btn" id="autoFillBtn" type="button">Auto-fill verse</button>
         </div>
-        <p class="hint" id="postHint">Your verse goes live within a minute.</p>
-      </section>
+        <p class="gate-note">NKJV, KJV, WEB, ASV, BBE, YLT and DARBY fill in automatically. NIV, ESV, NLT and NASB are copyrighted with no free source — pick the label and paste that text.</p>
 
-      <section class="panel">
-        <h2>Preview</h2>
-        <div class="preview-card" style="margin-top:14px">
-          <p class="preview-meta" id="pvMeta">—</p>
-          <p class="preview-text" id="pvText">Your verse will appear here.</p>
-          <p class="preview-ref" id="pvRef"></p>
+        <label class="field">
+          <span class="field-label">Verse text</span>
+          <textarea id="text" rows="7" placeholder="Paste or type the verse…"></textarea>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Short reflection <small>optional</small></span>
+          <input id="note" type="text" maxlength="240" placeholder="One line to sit with today" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Simple explanation <small>optional</small></span>
+          <textarea id="simplify" rows="3" maxlength="800" placeholder="Explain this verse in plain words, the way you would tell a friend."></textarea>
+          <p class="gate-note">This is what the "Simplify this verse" button shows.</p>
+        </label>
+
+        <div class="panel-actions">
+          <button class="key key--primary magnet" id="postBtn" type="button">Post verse</button>
+          <button class="key key--ghost" id="clearBtn" type="button">Clear</button>
         </div>
-      </section>
+        <p class="gate-note" id="postHint">Your verse goes live within a minute.</p>
+      </form>
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Upcoming and recent readings</h2>
-          <button class="pill small" id="refreshBtn" type="button">Refresh</button>
+      <!-- the shelf: upcoming + recent, with edit / delete -->
+      <section class="shelf">
+        <div class="shelf-head">
+          <h2 class="shelf-title">Upcoming and recent readings</h2>
+          <button class="icon-btn" id="refreshBtn" type="button">Refresh</button>
         </div>
         <div class="list" id="verseList">
           <p class="empty">Loading…</p>
         </div>
       </section>
     </section>
+
+    <!-- the live preview card: mirrors exactly what the home page will show -->
+    <aside class="preview-card" aria-live="polite">
+      <p class="preview-kicker" id="pvMeta">—</p>
+      <p class="preview-verse" id="pvText">Your verse will appear here.</p>
+      <p class="preview-ref" id="pvRef"></p>
+    </aside>
   </main>
+
+  <p class="status" id="statusLine" role="status" aria-live="polite"></p>
+
+  <footer class="margin">
+    <nav class="dots" aria-label="Sections">
+      <a class="dot" href="/index.html">Today</a>
+      <a class="dot" href="/archive.html">Archive</a>
+      <a class="dot is-current" href="/admin.html">Post</a>
+    </nav>
+    <p class="colophon">Soli Deo gloria</p>
+  </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="/assets/config.js"></script>
+  <script src="/assets/scene.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
   <script src="/assets/admin.js" type="module"></script>
 </body>
 </html>

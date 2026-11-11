@@ -2,107 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <title>Abidewell — a verse for today</title>
-  <meta name="description" content="One verse, set like a printed broadside. A new reading every day." />
-  <meta name="theme-color" content="#ede4d3" />
+  <meta name="description" content="A day, a verse, a living sky. Abide in it." />
+  <meta name="theme-color" content="#3f6cf0" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/folio.css" />
 </head>
-<body>
-  <div class="paper" aria-hidden="true"></div>
-  <div class="burst" aria-hidden="true"></div>
+<body class="is-immersive">
+  <!-- the living sky: drifting orbs + stars, tinted to the day's colour -->
+  <canvas class="scene" id="scene" aria-hidden="true"></canvas>
 
-  <nav class="rail rail--left" aria-label="Sections">
-    <a class="rail-link is-current" href="/">Today</a>
-    <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/archive.html">Archive</a>
-    <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/admin.html">Post</a>
-  </nav>
+  <!-- a giant, faint issue number adrift in the sky (the signature move) -->
+  <div class="sky" aria-hidden="true">
+    <span class="sky-no" id="skyNo">—</span>
+    <span class="sky-rule"></span>
+  </div>
 
-  <aside class="rail rail--right" aria-hidden="true">
-    <span class="wordmark">Abidewell</span>
-    <span class="rail-rule"></span>
-    <span class="issue">No.&nbsp;<b id="issueNo">001</b></span>
-  </aside>
+  <!-- the custom cursor ring -->
+  <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span></div>
 
-  <main class="altar">
-    <section class="halo" id="halo" aria-hidden="true">
-      <div class="rings"></div>
-      <div class="ticks" id="ticks"></div>
-      <div class="halo-disc"></div>
-    </section>
-
-    <article class="reading" id="reading" aria-live="polite">
-      <p class="eyebrow" id="verseMeta">—</p>
-
-      <blockquote class="verse">
-        <p class="verse-text" id="verseText"></p>
-      </blockquote>
-
-      <p class="citation">
-        <span class="citation-ref" id="verseRef"></span>
-        <span class="citation-rule" aria-hidden="true"></span>
-        <span class="citation-version" id="verseVersion"></span>
-      </p>
-
-      <p class="whisper" id="whisper"></p>
-
-      <p class="gloss" id="verseNote" hidden></p>
-    </article>
-
-    <section class="simplify" id="simplifyBlock" hidden>
-      <button class="simplify-toggle" id="simplifyBtn" type="button" aria-expanded="false" aria-controls="simplifyPanel">
-        <span class="simplify-mark" aria-hidden="true">✦</span>
-        <span>Simplify this verse</span>
-        <span class="simplify-chevron" aria-hidden="true">+</span>
-      </button>
-      <div class="simplify-panel" id="simplifyPanel" hidden>
-        <p class="simplify-label">In simple words</p>
-        <p class="simplify-text" id="simplifyText"></p>
-      </div>
-    </section>
-
-    <div class="instruments">
-      <div class="instrument-pair">
-        <button class="instrument" id="prevBtn" type="button">
-          <span aria-hidden="true">←</span> earlier
-        </button>
-        <button class="instrument" id="nextBtn" type="button">
-          later <span aria-hidden="true">→</span>
-        </button>
-      </div>
-
-      <div class="instrument-pair">
-        <button class="instrument instrument--amen" id="amenBtn" type="button">Amen</button>
-        <button class="instrument" id="copyBtn" type="button">
-          <span aria-hidden="true">⧉</span> copy
-        </button>
-        <button class="instrument" id="shareBtn" type="button">
-          <span aria-hidden="true">↗</span> share
-        </button>
-      </div>
+  <header class="mast">
+    <a class="brand" href="/index.html" aria-label="Abidewell home">
+      <span class="brand-glyph" aria-hidden="true"></span>
+      Abidewell
+    </a>
+    <div class="issue">
+      <span class="issue-no" id="issueNo">—</span>
+      <span class="issue-word">of 507</span>
     </div>
+  </header>
 
-    <p class="streak" id="streak" hidden>
-      <span class="streak-word">Kept</span>
-      <span class="streak-count" id="streakCount">1</span>
-      <span class="streak-word" id="streakUnit">day</span>
-      <span class="streak-marks" id="streakMarks" aria-hidden="true"></span>
-    </p>
+  <!-- the reading: the verse floats above the sky, tilts with the pointer -->
+  <main class="folio" id="reading" aria-live="polite">
+    <div class="card" id="verseCard">
+      <p class="folio-kicker" id="verseMeta">Today</p>
+      <h1 class="verse" id="verseText"></h1>
+      <p class="folio-cite">
+        <span id="verseRef"></span>
+        <span class="folio-cite-ver" id="verseVersion"></span>
+      </p>
+      <p class="folio-note" id="verseNote" hidden></p>
 
-    <p class="colophon">Soli Deo gloria <span aria-hidden="true">·</span> <span id="colophonDate"></span></p>
+      <section class="folio-plain" id="simplifyBlock" hidden>
+        <button class="plain-btn magnet" id="simplifyBtn" type="button" aria-expanded="false" aria-controls="simplifyPanel">
+          <span>Read it simply</span> <span class="plain-arrow" aria-hidden="true">↓</span>
+        </button>
+        <div class="plain-body" id="simplifyPanel" hidden>
+          <p id="simplifyText"></p>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <!-- the turn: swipe or arrow. Magnetic buttons pull toward the pointer. -->
+  <div class="turn" aria-label="Move through the readings">
+    <button class="turn-btn magnet" id="prevBtn" type="button" aria-label="Earlier reading">‹</button>
+    <span class="turn-hint" aria-hidden="true">drag</span>
+    <button class="turn-btn magnet" id="nextBtn" type="button" aria-label="Later reading">›</button>
+  </div>
+
+  <footer class="margin">
+    <div class="margin-row">
+      <button class="amen magnet" id="amenBtn" type="button">
+        <span class="amen-face">Amen</span>
+      </button>
+      <span class="margin-count" id="streak" hidden><b id="streakCount">1</b><i id="streakUnit">day kept</i></span>
+      <button class="tool" id="copyBtn" type="button">Copy</button>
+      <button class="tool" id="shareBtn" type="button">Share</button>
+    </div>
+    <nav class="dots" aria-label="Sections">
+      <a class="dot is-current" href="/index.html">Today</a>
+      <a class="dot" href="/archive.html">Archive</a>
+      <a class="dot" href="/admin.html">Post</a>
+    </nav>
+    <p class="colophon">Soli Deo gloria · <span id="colophonDate"></span></p>
+  </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="/assets/config.js"></script>
+  <script src="/assets/scene.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
   <script src="/assets/app.js" type="module"></script>
 </body>
 </html>

@@ -1,19 +1,20 @@
-/* Abidewell — today's reading */
+/* Abidewell — today's reading (Folio v2, the living sky).
+   The verse sits on a subtly tilting card above a particle scene that
+   tints to the day's colour. Every control is magnetic; Amen bursts the
+   scene. Words rise word-by-word. Swipe to travel through days. */
 import { loadMergedVerses } from './verse-data.js';
 
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
-  ticks: $('#ticks'),
-  reading: $('#reading'),
   meta: $('#verseMeta'),
+  reading: $('#reading'),
+  card: $('#verseCard'),
   text: $('#verseText'),
   ref: $('#verseRef'),
   version: $('#verseVersion'),
   note: $('#verseNote'),
-  whisper: $('#whisper'),
-  issue: $('#issueNo'),
   simplifyBlock: $('#simplifyBlock'),
   simplifyBtn: $('#simplifyBtn'),
   simplifyPanel: $('#simplifyPanel'),
@@ -25,67 +26,29 @@ const els = {
   share: $('#shareBtn'),
   streak: $('#streak'),
   streakCount: $('#streakCount'),
-  streakMarks: $('#streakMarks'),
+  streakUnit: $('#streakUnit'),
   issue: $('#issueNo'),
+  skyNo: $('#skyNo'),
   colophon: $('#colophonDate'),
-  toast: $('#toast')
+  toast: $('#toast'),
+  scene: $('#scene'),
+  cursor: $('.cursor')
 };
 
 const STREAK_KEY = 'abidewell.streak.v2';
 const AMEN_KEY = 'abidewell.amen.v2';
-const state = { verses: [], index: 0, today: '' };
+const state = { verses: [], index: 0, today: '', scene: null };
 
-const WHISPERS = [
-  'An angel is reading this one with you.',
-  'This verse was picked before you woke up.',
-  'Read it once for the words. Twice for the meaning.',
-  'No quiz at the end.',
-  'Somebody prayed for you this morning.',
-  'Heaven is not in a hurry. You do not have to be either.',
-  'You opened this at exactly the right time.',
-  'This one is better out loud.',
-  'Coffee first is allowed.',
-  'You are not behind.',
-  'The angels are not tired of this verse.',
-  'Pajamas are acceptable reading attire.',
-  'If you only remember one line, make it the last one.',
-  'Take a screenshot. It is yours now.',
-  'This verse has been waiting for you.',
-  'There is no wrong way to read it.',
-  'Breathe. Then begin.',
-  'Underline it if you like. Nobody is grading.',
-  'Some days the verse reads you back.',
-  'You are allowed to sit here a while.',
-  'This one is short. Let it be enough.',
-  'The door is open. You do not have to knock twice.',
-  'Someone needed this today. Probably you.',
-  'It is fine to read it twice and still not get it.',
-  'God is not annoyed that you are here.',
-  'A quiet minute counts.',
-  'This verse does not expire.',
-  'You can come back to it tonight.',
-  'The words are older than your worries.',
-  'No rush. The verse will wait.',
-  'Read it like a letter, not a notice.',
-  'There is a seat here with your name on it.',
-  'You do not have to feel it to believe it.',
-  'Small verse. Big door.',
-  'Somebody is glad you opened this.',
-  'This is a good place to put your phone down after.',
-  'The first word is a door. Walk in.',
-  'It is okay if today this is the only thing you do.',
-  'Angels sing badly. You can still sing.',
-  'Mercy does not check the time.',
-  'You were not a mistake at 6 a.m. either.',
-  'This one is a lamp, not a spotlight.',
-  'Keep it in your pocket for later.',
-  'Read it slowly. The good parts are small.',
-  'He is not tired of starting over with you.',
-  'You are allowed to begin again at any hour.',
-  'This verse has no fine print.',
-  'If it made you pause, that was the point.',
-  'Somebody left the light on for you.',
-  'Come as you are. Stay a minute.'
+/* The day's single saturated colour: a calm, saturated stop every seven
+   days, so different days genuinely look different but nothing is garish. */
+const DAY_COLORS = [
+  ['#3f6cf0', '#2a4fd0'], /* cobalt   */
+  ['#f0566e', '#c73a52'], /* coral    */
+  ['#f59f1e', '#d97d0a'], /* marigold */
+  ['#1fa08e', '#127a6b'], /* viridian */
+  ['#8a4fd0', '#6a33ac'], /* plum     */
+  ['#3aa6d8', '#2384b4'], /* cyan     */
+  ['#4f9e3f', '#3a7d2e']  /* moss     */
 ];
 
 /* ------------------------------------------------------------------ dates */
@@ -127,41 +90,22 @@ function labelForDate(iso) {
   return prettyDate(iso);
 }
 
-/* ------------------------------------------------------------------- halo */
-
-function buildTicks() {
-  const count = 72;
-  const active = dayOfYear(state.today) % count;
-  const frag = document.createDocumentFragment();
-
-  for (let i = 0; i < count; i += 1) {
-    const tick = document.createElement('span');
-    tick.className = 'tick' + (i === active ? ' is-today' : '');
-    tick.style.transform = 'rotate(' + (i * (360 / count)) + 'deg)';
-    tick.appendChild(document.createElement('i'));
-    frag.appendChild(tick);
+/* paint the day's colour + issue number into the sky, and retint the scene */
+function paintSky(verse) {
+  const [hero, heroDeep] = DAY_COLORS[dayOfYear(verse.date) % DAY_COLORS.length];
+  const root = document.documentElement;
+  root.style.setProperty('--hero', hero);
+  root.style.setProperty('--hero-2', heroDeep);
+  root.style.setProperty('--hero-glow', hero + '80');
+  if (document.querySelector('meta[name=theme-color]')) {
+    document.querySelector('meta[name=theme-color]').setAttribute('content', hero);
   }
+  const num = String(dayOfYear(verse.date)).padStart(3, '0');
+  if (els.skyNo) els.skyNo.textContent = num;
+  if (els.issue) els.issue.textContent = num;
+  document.title = 'Abidewell — ' + verse.reference;
 
-  els.ticks.replaceChildren(frag);
-  els.issue.textContent = String(dayOfYear(state.today)).padStart(3, '0');
-  els.colophon.textContent = prettyDate(state.today, 'long');
-}
-
-/* ------------------------------------------------------------------- data */
-
-async function loadVerses() {
-  const sources = [
-    CFG.data ? CFG.data + '?t=' + Date.now() : null,
-    'data/verses.json?t=' + Date.now()
-  ].filter(Boolean);
-  return loadMergedVerses(sources);
-}
-
-function usable(verses) {
-  return verses
-    .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && typeof v.text === 'string')
-    .filter((v) => v.date <= state.today)
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  if (state.scene) state.scene.setColors(hero, heroDeep, '#f5f3ee');
 }
 
 /* -------------------------------------------------------------- rendering */
@@ -170,13 +114,44 @@ function current() {
   return state.verses[state.index] || CFG.fallbackVerse;
 }
 
-function render() {
+function paintVerse(paragraph, text, animate) {
+  paragraph.replaceChildren();
+  if (!text) return;
+
+  const words = String(text).trim().split(/\s+/);
+  const frag = document.createDocumentFragment();
+
+  words.forEach((word, i) => {
+    const span = document.createElement('span');
+    span.className = 'w';
+    span.textContent = word;
+    span.style.setProperty('--i', i);
+    frag.appendChild(span);
+    if (i < words.length - 1) frag.appendChild(document.createTextNode(' '));
+  });
+
+  paragraph.appendChild(frag);
+
+  if (animate && window.gsap) {
+    // let the CSS keyframe play; GSAP just orchestrates the card settle
+    window.gsap.fromTo(
+      els.card,
+      { y: 18, opacity: 0 },
+      { y: 0, opacity: 1, duration: .6, ease: 'power3.out' }
+    );
+  }
+}
+
+function render(animate = true) {
   const verse = current();
 
+  paintSky(verse);
+
   els.meta.textContent = verse.date === state.today ? 'Today' : labelForDate(verse.date);
-  els.text.textContent = verse.text;
   els.ref.textContent = verse.reference;
   els.version.textContent = verse.version || '';
+
+  paintVerse(els.text, verse.text, animate);
 
   if (verse.note && String(verse.note).trim()) {
     els.note.textContent = String(verse.note).trim();
@@ -190,7 +165,6 @@ function render() {
   els.next.disabled = state.index <= 0;
 
   setSimplify(verse.simplify);
-  setWhisper();
 }
 
 function setSimplify(value) {
@@ -210,25 +184,21 @@ function setSimplify(value) {
   els.simplifyBtn.setAttribute('aria-expanded', 'false');
 }
 
-function setWhisper(forcedIndex) {
-  const index =
-    typeof forcedIndex === 'number'
-      ? Math.abs(forcedIndex) % WHISPERS.length
-      : dayOfYear(state.today) % WHISPERS.length;
+/* ------------------------------------------------------------------- data */
 
-  const line = WHISPERS[index];
-  if (!line) return;
+async function loadVerses() {
+  const sources = [
+    CFG.data ? CFG.data + '?t=' + Date.now() : null,
+    'data/verses.json?t=' + Date.now()
+  ].filter(Boolean);
+  return loadMergedVerses(sources);
+}
 
-  if (!els.whisper.textContent) {
-    els.whisper.textContent = line;
-    return;
-  }
-
-  els.whisper.classList.add('is-swapping');
-  window.setTimeout(() => {
-    els.whisper.textContent = line;
-    els.whisper.classList.remove('is-swapping');
-  }, 180);
+function usable(verses) {
+  return verses
+    .filter((v) => v && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && typeof v.text === 'string')
+    .filter((v) => v.date <= state.today)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }
 
 /* ------------------------------------------------------------- navigation */
@@ -237,18 +207,34 @@ function move(direction) {
   const next = state.index + direction;
   if (next < 0 || next >= state.verses.length) return;
 
-  els.reading.style.opacity = '0';
-  els.reading.style.transform = direction > 0 ? 'translateX(-14px)' : 'translateX(14px)';
+  const leaving = 'is-leaving-' + (direction > 0 ? 'next' : 'prev');
 
-  window.setTimeout(() => {
-    state.index = next;
-    render();
-    els.reading.style.transform = direction > 0 ? 'translateX(14px)' : 'translateX(-14px)';
-    requestAnimationFrame(() => {
-      els.reading.style.opacity = '1';
-      els.reading.style.transform = 'none';
+  if (window.gsap) {
+    window.gsap.to(els.reading, {
+      x: direction > 0 ? -28 : 28,
+      autoAlpha: 0,
+      duration: .26,
+      ease: 'power2.in',
+      onComplete: () => {
+        state.index = next;
+        render(true);
+        window.gsap.fromTo(els.reading,
+          { x: direction > 0 ? 28 : -28, autoAlpha: 0 },
+          { x: 0, autoAlpha: 1, duration: .5, ease: 'power3.out' });
+      }
     });
-  }, 180);
+  } else {
+    els.reading.classList.add(leaving);
+    window.setTimeout(() => {
+      state.index = next;
+      render(true);
+      els.reading.classList.remove('is-leaving-next', 'is-leaving-prev');
+      requestAnimationFrame(() => {
+        els.reading.classList.add('is-entering');
+        window.setTimeout(() => els.reading.classList.remove('is-entering'), 80);
+      });
+    }, 240);
+  }
 }
 
 /* ------------------------------------------------------------------ streak */
@@ -276,22 +262,14 @@ function updateStreak() {
 
   if (hit) {
     streak.badges.push(hit);
-    window.setTimeout(() => toast(hit + ' days kept'), 700);
+    window.setTimeout(() => toast(hit + ' days kept'), 800);
   }
 
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(streak)); } catch {}
 
   els.streak.hidden = false;
   els.streakCount.textContent = String(streak.count);
-  document.getElementById('streakUnit').textContent = streak.count === 1 ? 'day' : 'days';
-
-  const shown = Math.min(streak.count, 7);
-  els.streakMarks.replaceChildren();
-  for (let i = 0; i < 7; i += 1) {
-    const mark = document.createElement('span');
-    mark.className = 'mark' + (i < shown ? ' is-on' : '');
-    els.streakMarks.appendChild(mark);
-  }
+  els.streakUnit.textContent = streak.count === 1 ? 'day kept' : 'days kept';
 }
 
 /* -------------------------------------------------------------------- copy */
@@ -354,35 +332,16 @@ function wrapLines(ctx, text, maxWidth) {
   return lines;
 }
 
-function drawCornerTicks(ctx, W, H) {
-  ctx.strokeStyle = 'rgba(25,20,16,.35)';
-  ctx.lineWidth = 1;
-  const pad = 66;
-  const len = 18;
-
-  const corners = [
-    [pad, pad, 1, 1],
-    [W - pad, pad, -1, 1],
-    [pad, H - pad, 1, -1],
-    [W - pad, H - pad, -1, -1]
-  ];
-
-  for (const [x, y, dx, dy] of corners) {
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + len * dx, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, y + len * dy);
-    ctx.stroke();
-  }
-}
-
 async function buildImage(verse) {
   if (document.fonts && document.fonts.ready) {
     try { await document.fonts.ready; } catch {}
   }
+
+  const cs = getComputedStyle(document.documentElement);
+  const hero = cs.getPropertyValue('--hero').trim() || '#3f6cf0';
+  const heroDeep = cs.getPropertyValue('--hero-2').trim() || '#2a4fd0';
+  const paper = '#f5f3ee';
+  const ink = '#121319';
 
   const W = 1080;
   const H = 1350;
@@ -391,108 +350,66 @@ async function buildImage(verse) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  /* paper */
-  const bg = ctx.createLinearGradient(0, 0, W * 0.4, H);
-  bg.addColorStop(0, '#f4ecdc');
-  bg.addColorStop(0.55, '#ede4d3');
-  bg.addColorStop(1, '#e1d4bd');
-  ctx.fillStyle = bg;
+  // paper base
+  ctx.fillStyle = paper;
   ctx.fillRect(0, 0, W, H);
 
-  /* radial engraving */
-  ctx.save();
-  ctx.translate(W / 2, H * 0.46);
-  ctx.strokeStyle = 'rgba(25,20,16,.06)';
-  for (let i = 0; i < 72; i += 1) {
-    const a = (i / 72) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * 150, Math.sin(a) * 150);
-    ctx.lineTo(Math.cos(a) * 470, Math.sin(a) * 470);
-    ctx.stroke();
-  }
-  ctx.beginPath();
-  ctx.arc(0, 0, 470, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, 150, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
+  // the same signature move: the issue number, huge, in the day's colour
+  ctx.fillStyle = hero;
+  ctx.globalAlpha = 0.14;
+  ctx.font = '900 480px "Fraunces", Georgia, serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(String(dayOfYear(verse.date)).padStart(3, '0'), W - 20, 470);
+  ctx.globalAlpha = 1;
 
-  /* frame */
-  ctx.strokeStyle = 'rgba(25,20,16,.55)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(52, 52, W - 104, H - 104);
-  ctx.strokeStyle = 'rgba(25,20,16,.22)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(60, 60, W - 120, H - 120);
-  drawCornerTicks(ctx, W, H);
+  // wordmark, top left
+  ctx.textAlign = 'left';
+  ctx.fillStyle = ink;
+  ctx.font = '900 36px "Fraunces", Georgia, serif';
+  ctx.fillText('Abidewell', 54, 88);
 
-  /* header */
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#c13b27';
-  ctx.beginPath();
-  ctx.arc(W / 2, 146, 22, 0, Math.PI * 2);
-  ctx.strokeStyle = '#c13b27';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.font = '400 20px "Literata", Georgia, serif';
-  ctx.fillText('✦', W / 2, 153);
+  ctx.fillStyle = heroDeep;
+  ctx.fillRect(54, 104, 64, 4);
 
-  ctx.fillStyle = '#191410';
-  ctx.font = '600 22px "IBM Plex Sans", Arial, sans-serif';
-  ctx.save();
-  ctx.letterSpacing = '8px';
-  ctx.fillText('ABIDEWELL', W / 2, 210);
-  ctx.restore();
-
-  ctx.fillStyle = 'rgba(25,20,16,.55)';
-  ctx.font = '400 19px "IBM Plex Sans", Arial, sans-serif';
-  ctx.fillText('NO. ' + String(dayOfYear(verse.date)).padStart(3, '0'), W / 2, 246);
-
-  /* verse */
-  const maxWidth = W - 240;
-  let size = 60;
-  ctx.font = '400 ' + size + 'px "Literata", Georgia, serif';
+  // the verse, big, left-aligned — matching the site
+  ctx.textAlign = 'left';
+  const left = 54;
+  const maxWidth = W - 120;
+  let size = 54;
+  ctx.font = '400 ' + size + 'px "Fraunces", Georgia, serif';
   let lines = wrapLines(ctx, verse.text, maxWidth);
 
-  while (lines.length > 12 && size > 32) {
+  while (lines.length > 11 && size > 30) {
     size -= 3;
-    ctx.font = '400 ' + size + 'px "Literata", Georgia, serif';
+    ctx.font = '400 ' + size + 'px "Fraunces", Georgia, serif';
     lines = wrapLines(ctx, verse.text, maxWidth);
   }
 
-  const lineHeight = size * 1.52;
-  const blockHeight = lines.length * lineHeight;
-  let y = H * 0.5 - blockHeight / 2 + lineHeight * 0.72;
-
-  ctx.fillStyle = '#191410';
+  const lineHeight = size * 1.28;
+  let y = H * 0.44;
+  ctx.fillStyle = ink;
   for (const line of lines) {
-    ctx.fillText(line, W / 2, y);
+    ctx.fillText(line, left, y);
     y += lineHeight;
   }
 
-  /* reference */
-  const refY = y + 54;
-  ctx.strokeStyle = 'rgba(25,20,16,.35)';
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - 42, refY - 22);
-  ctx.lineTo(W / 2 + 42, refY - 22);
-  ctx.stroke();
+  // the citation
+  y += 30;
+  ctx.fillStyle = heroDeep;
+  ctx.font = '900 30px "Fraunces", Georgia, serif';
+  ctx.fillText(verse.reference, left, y);
+  ctx.fillStyle = ink;
+  ctx.globalAlpha = .55;
+  ctx.font = '500 22px "Space Grotesk", Arial, sans-serif';
+  ctx.fillText((verse.version || '').toUpperCase(), left + ctx.measureText(verse.reference).width + 22, y);
+  ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#c13b27';
-  ctx.font = '600 26px "IBM Plex Sans", Arial, sans-serif';
-  ctx.save();
-  ctx.letterSpacing = '3px';
-  ctx.fillText((verse.reference + (verse.version ? '  ·  ' + verse.version : '')).toUpperCase(), W / 2, refY + 16);
-  ctx.restore();
-
-  /* footer */
-  ctx.fillStyle = 'rgba(25,20,16,.6)';
-  ctx.font = 'italic 400 22px "Literata", Georgia, serif';
-  ctx.fillText('Soli Deo gloria', W / 2, H - 132);
-
-  ctx.font = '400 18px "IBM Plex Sans", Arial, sans-serif';
-  ctx.fillText(prettyDate(verse.date, 'long').toUpperCase(), W / 2, H - 100);
+  // colophon, bottom left
+  ctx.fillStyle = ink;
+  ctx.globalAlpha = .45;
+  ctx.font = 'italic 400 24px "Fraunces", Georgia, serif';
+  ctx.fillText('Soli Deo gloria · ' + prettyDate(verse.date, 'long'), left, H - 60);
+  ctx.globalAlpha = 1;
 
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.96));
 }
@@ -526,7 +443,7 @@ async function share() {
     a.click();
     a.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-    toast('Broadside saved');
+    toast('Card saved');
   } catch {
     toast('Could not make the image');
   } finally {
@@ -552,6 +469,7 @@ function initGestures() {
   let tracking = false;
 
   els.reading.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.w') || e.target.closest('button')) return;
     tracking = true;
     x0 = e.clientX;
     y0 = e.clientY;
@@ -571,27 +489,23 @@ function initGestures() {
 
   els.reading.addEventListener('pointercancel', () => { tracking = false; });
 
-  /* Easter egg: tap the issue number for a different whisper. */
-  const issueHost = els.issue && els.issue.parentElement;
-  if (issueHost) {
-    issueHost.addEventListener('click', () => {
-      setWhisper(Math.floor(Math.random() * WHISPERS.length));
-      toast('✦');
-    });
-  }
-
   els.prev.addEventListener('click', () => move(1));
   els.next.addEventListener('click', () => move(-1));
 
-  els.amen.addEventListener('click', () => {
+  els.amen.addEventListener('click', (e) => {
     let count = 0;
     try { count = Number(localStorage.getItem(AMEN_KEY) || 0) + 1; } catch {}
     try { localStorage.setItem(AMEN_KEY, String(count)); } catch {}
 
     els.amen.classList.add('is-pressed');
-    window.setTimeout(() => els.amen.classList.remove('is-pressed'), 800);
+    window.setTimeout(() => els.amen.classList.remove('is-pressed'), 650);
     try { navigator.vibrate && navigator.vibrate([6, 36, 6]); } catch {}
     toast(count > 1 ? 'Amen · ' + count : 'Amen');
+
+    // a burst of the day's colour where the tap fell
+    const x = e.clientX || window.innerWidth / 2;
+    const y = e.clientY || window.innerHeight / 2;
+    if (state.scene) state.scene.burst(x, y, 46);
   });
 
   els.copy.addEventListener('click', copyVerse);
@@ -608,6 +522,85 @@ function initGestures() {
     if (e.key === 'ArrowRight') move(-1);
     if (e.key === 'ArrowLeft') move(1);
   });
+
+  /* word hover: the colour of the day glows under the cursor */
+  els.text.addEventListener('mouseover', (e) => {
+    const word = e.target.closest('.w');
+    if (word) word.classList.add('is-glow');
+  });
+  els.text.addEventListener('mouseout', (e) => {
+    const word = e.target.closest('.w');
+    if (word) word.classList.remove('is-glow');
+  });
+}
+
+/* ---------------------------------------------------------- magnetic + tilt */
+
+function initMotion() {
+  const fine = window.matchMedia &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* magnetic pull: buttons and dots lean toward the pointer while hovered */
+  if (fine && !reduce) {
+    document.querySelectorAll('.magnet, .amen').forEach((el) => {
+      el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        const x = e.clientX - (r.left + r.width / 2);
+        const y = e.clientY - (r.top + r.height / 2);
+        el.style.transform = 'translate(' + x * 0.12 + 'px,' + y * 0.22 + 'px)';
+      });
+      el.addEventListener('pointerleave', () => {
+        el.style.transform = '';
+      });
+    });
+
+    /* custom cursor */
+    if (els.cursor) {
+      const ring = els.cursor;
+      let cx = 0, cy = 0, rx = 0, ry = 0;
+      window.addEventListener('pointermove', (e) => {
+        cx = e.clientX; cy = e.clientY;
+      }, { passive: true });
+
+      function raf() {
+        rx += (cx - rx) * 0.18;
+        ry += (cy - ry) * 0.18;
+        ring.style.left = rx + 'px';
+        ring.style.top = ry + 'px';
+        requestAnimationFrame(raf);
+      }
+      raf();
+
+      document.querySelectorAll('a, button, .archive-item, [tabindex]').forEach((el) => {
+        el.addEventListener('pointerenter', () => ring.classList.add('is-hover'));
+        el.addEventListener('pointerleave', () => ring.classList.remove('is-hover'));
+      });
+    }
+  }
+
+  /* the verse card tilts in 3D with the pointer */
+  if (fine && !reduce && els.card) {
+    let tx = 0, ty = 0, px = 0, py = 0;
+    window.addEventListener('pointermove', (e) => {
+      tx = e.clientX / window.innerWidth;
+      ty = e.clientY / window.innerHeight;
+    }, { passive: true });
+
+    function tilt() {
+      px += (tx - px) * 0.08;
+      py += (ty - py) * 0.08;
+      const ry = (px - 0.5) * 7;
+      const rx = (0.5 - py) * 7;
+      els.card.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+      els.card.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+      els.card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
+      els.card.style.setProperty('--my', ((1 - py) * 100).toFixed(1) + '%');
+      requestAnimationFrame(tilt);
+    }
+    tilt();
+  }
 }
 
 /* ------------------------------------------------------------------- init */
@@ -620,28 +613,43 @@ function initServiceWorker() {
   }
 }
 
+function initScene() {
+  if (!window.AbidewellScene || !els.scene) return;
+  state.scene = window.AbidewellScene.init(els.scene, {
+    dense: window.innerWidth > 900,
+    interactive: true
+  });
+  window.AbidewellScene.initChrome();
+  const verse = current();
+  if (verse) {
+    const [hero, heroDeep] = DAY_COLORS[dayOfYear(verse.date) % DAY_COLORS.length];
+    state.scene.setColors(hero, heroDeep, '#f5f3ee');
+  }
+}
+
 async function init() {
   state.today = todayISO();
-  buildTicks();
 
   const list = await loadVerses();
   state.verses = usable(list);
   state.index = 0;
 
-  render();
+  render(true);
   initGestures();
+  initMotion();
+  initScene();
   updateStreak();
+  els.colophon.textContent = prettyDate(state.today, 'long');
   initServiceWorker();
 
   window.setInterval(() => {
     const now = todayISO();
     if (now !== state.today) {
       state.today = now;
-      buildTicks();
       loadVerses().then((fresh) => {
         state.verses = usable(fresh);
         state.index = 0;
-        render();
+        render(true);
       });
     }
   }, 60000);
