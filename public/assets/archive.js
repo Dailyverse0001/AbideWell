@@ -19,7 +19,6 @@ const DAY_COLORS = [
   ['#4f9e3f', '#3a7d2e']
 ];
 let scene = null;
-let retintQueued = null;
 
 function todayISO() {
   return new Intl.DateTimeFormat('en-CA', {
