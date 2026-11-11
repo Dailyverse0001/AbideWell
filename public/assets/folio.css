@@ -291,6 +291,16 @@ body::before {
   transition: color .25s ease, text-shadow .25s ease;
 }
 
+/* drop cap: first word is big — pull it in so it sits close to the rest */
+.verse .w:first-child {
+  font-size: 2.1em;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  vertical-align: baseline;
+  margin-right: 0.06em;
+}
+
 .verse .w.is-glow {
   color: var(--hero-2);
   text-shadow: 0 0 22px var(--hero-glow);
