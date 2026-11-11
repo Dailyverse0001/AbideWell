@@ -19,6 +19,7 @@ const DAY_COLORS = [
   ['#4f9e3f', '#3a7d2e']
 ];
 let scene = null;
+let retintQueued = null;
 
 function todayISO() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -81,7 +82,7 @@ async function load() {
   }
 
   /* retint the sky to the newest day's colour */
-  if (verses.length) retintSkyFor(verses[0]);
+  if (verses.length) queueRetint(verses[0]);
 
   if (!verses.length) {
     listEl.innerHTML = '<p class="empty">No verses yet. The first one is on its way.</p>';
@@ -274,6 +275,19 @@ function retintSkyFor(verse) {
   scene.setColors(hero, deep, '#f5f3ee');
 }
 
+/* scroll-linked retinting: each reading drags the sky to its own day's colour.
+   Throttled so fast scrolling doesn't queue dozens of sprite recolours. */
+let retintQueued = null;
+
+function queueRetint(verse) {
+  if (retintQueued === verse.date) return;
+  retintQueued = verse.date;
+  requestAnimationFrame(() => {
+    retintSkyFor(verse);
+    retintQueued = null;
+  });
+}
+
 /* scroll-linked retinting: each reading drags the sky to its own day's colour */
 function watchScrollRetint() {
   if (!('IntersectionObserver' in window)) return;
@@ -286,7 +300,7 @@ function watchScrollRetint() {
         const date = item.getAttribute('data-date');
         if (!date) return;
         const fake = { date };
-        retintSkyFor(fake);
+        queueRetint(fake);
         item.classList.add('is-lit');
         io.unobserve(item);
       });

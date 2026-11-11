@@ -87,6 +87,7 @@
 
       this.resize();
       this.populate();
+      this.buildSprites();
       this.start();
     }
 
@@ -94,9 +95,13 @@
       const a = hexToRgb(hexA) || this.colors.a;
       const b = hexToRgb(hexB) || this.colors.b;
       if (hexPaper) this.colors.c = hexToRgb(hexPaper) || this.colors.c;
+      // skip the rebuild when the colours are already current: retinting
+      // happens on every scroll frame in the archive, and allocating new
+      // offscreen canvases is what causes the visible hitch.
+      if (a.r === this.colors.a.r && a.g === this.colors.a.g && a.b === this.colors.a.b) return;
       this.colors.a = a;
       this.colors.b = b;
-      this.buildSprites();
+      this.recolorSprites();
     }
 
     setDensity(count) {
@@ -125,6 +130,30 @@
       this.starSprite.width = 32;
       this.starSprite.height = 32;
       const sc = this.starSprite.getContext('2d');
+      const sg = sc.createRadialGradient(16, 16, 0, 16, 16, 16);
+      sg.addColorStop(0, css(this.colors.c, 0.9));
+      sg.addColorStop(0.4, css(this.colors.c, 0.35));
+      sg.addColorStop(1, css(this.colors.c, 0));
+      sc.fillStyle = sg;
+      sc.fillRect(0, 0, 32, 32);
+    }
+
+    /* Recolour the existing sprite canvases in place instead of allocating
+       new ones: retinting happens on every scroll frame in the archive. */
+    recolorSprites() {
+      const oc = this.orbSprite.getContext('2d');
+      const S = 128;
+      oc.clearRect(0, 0, S, S);
+      const mixc = blend(this.colors.a, this.colors.b, 0.5);
+      const g = oc.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+      g.addColorStop(0, css(mixc, 0.32));
+      g.addColorStop(0.55, css(mixc, 0.14));
+      g.addColorStop(1, css(mixc, 0));
+      oc.fillStyle = g;
+      oc.fillRect(0, 0, S, S);
+
+      const sc = this.starSprite.getContext('2d');
+      sc.clearRect(0, 0, 32, 32);
       const sg = sc.createRadialGradient(16, 16, 0, 16, 16, 16);
       sg.addColorStop(0, css(this.colors.c, 0.9));
       sg.addColorStop(0.4, css(this.colors.c, 0.35));
