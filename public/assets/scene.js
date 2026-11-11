@@ -96,6 +96,7 @@
       if (hexPaper) this.colors.c = hexToRgb(hexPaper) || this.colors.c;
       this.colors.a = a;
       this.colors.b = b;
+      this.buildSprites();
     }
 
     setDensity(count) {
@@ -103,10 +104,39 @@
       this.populate();
     }
 
+    /* Each orb is rendered ONCE to a small offscreen canvas, then blitted
+       with drawImage every frame: 26 radial-gradient allocations/frame is
+       what makes the scene heavy on phones. */
+    buildSprites() {
+      const S = 128;
+      this.orbSprite = document.createElement('canvas');
+      this.orbSprite.width = S;
+      this.orbSprite.height = S;
+      const oc = this.orbSprite.getContext('2d');
+      const mixc = blend(this.colors.a, this.colors.b, 0.5);
+      const g = oc.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+      g.addColorStop(0, css(mixc, 0.32));
+      g.addColorStop(0.55, css(mixc, 0.14));
+      g.addColorStop(1, css(mixc, 0));
+      oc.fillStyle = g;
+      oc.fillRect(0, 0, S, S);
+
+      this.starSprite = document.createElement('canvas');
+      this.starSprite.width = 32;
+      this.starSprite.height = 32;
+      const sc = this.starSprite.getContext('2d');
+      const sg = sc.createRadialGradient(16, 16, 0, 16, 16, 16);
+      sg.addColorStop(0, css(this.colors.c, 0.9));
+      sg.addColorStop(0.4, css(this.colors.c, 0.35));
+      sg.addColorStop(1, css(this.colors.c, 0));
+      sc.fillStyle = sg;
+      sc.fillRect(0, 0, 32, 32);
+    }
+
     populate() {
       const small = Math.min(this.w, this.h) < 480;
-      const orbCount = this.opts.dense ? (small ? 16 : 26) : small ? 9 : 15;
-      const starCount = this.opts.dense ? (small ? 90 : 160) : small ? 60 : 110;
+      const orbCount = this.opts.dense ? (small ? 12 : 18) : small ? 7 : 12;
+      const starCount = this.opts.dense ? (small ? 70 : 120) : small ? 45 : 80;
 
       this.orbs = [];
       for (let i = 0; i < orbCount; i += 1) this.orbs.push(this.makeOrb(true));
@@ -134,7 +164,7 @@
         vx: (Math.random() - 0.5) * 0.00016,
         vy: -(0.00008 + Math.random() * 0.00018),
         r: big ? 0.22 + Math.random() * 0.3 : 0.08 + Math.random() * 0.12,
-        a: 0.05 + Math.random() * (big ? 0.12 : 0.08),
+        a: 0.5 + Math.random() * (big ? 0.5 : 0.4),
         color,
         parallax: 0.2 + Math.random() * 0.8,
         phase: Math.random() * Math.PI * 2,
@@ -167,7 +197,7 @@
     }
 
     resize() {
-      this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       this.w = this.canvas.clientWidth || window.innerWidth;
       this.h = this.canvas.clientHeight || window.innerHeight;
       this.canvas.width = Math.floor(this.w * this.dpr);
@@ -200,8 +230,17 @@
       cancelAnimationFrame(this.raf);
     }
 
+    /* Half-rate rendering: the sky drifts slowly, so 30fps is indistinguishable
+       from 60fps and halves the CPU cost on every phone. */
     tick(now) {
       if (!this.running) return;
+
+      const frame = 33; // ms between renders
+      if (now - this.last < frame) {
+        this.raf = requestAnimationFrame(this.tick);
+        return;
+      }
+
       const dt = Math.min(48, now - this.last);
       this.last = now;
 
@@ -218,23 +257,7 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // stars (twinkle)
-      for (const s of this.stars) {
-        s.tw += s.tws * (dt / 16);
-        const tw = 0.35 + 0.35 * Math.sin(s.tw);
-        const ox = px * 22 * s.depth;
-        const oy = py * 22 * s.depth;
-        const sx = s.x * w + ox;
-        const sy = s.y * h + oy;
-        ctx.globalAlpha = tw * 0.5;
-        ctx.fillStyle = css(this.colors.c);
-        ctx.beginPath();
-        ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      // orbs (drift + parallax)
+      // orbs: blit the pre-rendered sprite, no per-frame gradient allocation
       for (const o of this.orbs) {
         o.x += o.vx * dt * 60;
         o.y += o.vy * dt * 60;
@@ -254,14 +277,21 @@
         const cy = o.y * h + oy;
         const R = o.r * Math.min(w, h) * breathe;
 
-        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
-        g.addColorStop(0, css(o.color, o.a));
-        g.addColorStop(0.6, css(o.color, o.a * 0.4));
-        g.addColorStop(1, css(o.color, 0));
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = o.a;
+        ctx.drawImage(this.orbSprite, cx - R, cy - R, R * 2, R * 2);
+      }
+
+      // stars: blit the small sprite, twinkle via alpha
+      for (const s of this.stars) {
+        s.tw += s.tws * (dt / 16);
+        const tw = 0.35 + 0.35 * Math.sin(s.tw);
+        const ox = px * 22 * s.depth;
+        const oy = py * 22 * s.depth;
+        const sx = s.x * w + ox;
+        const sy = s.y * h + oy;
+        const size = s.r * 4;
+        ctx.globalAlpha = tw * 0.5;
+        ctx.drawImage(this.starSprite, sx - size / 2, sy - size / 2, size, size);
       }
 
       // particles (bursts)
