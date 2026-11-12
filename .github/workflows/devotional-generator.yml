@@ -1,0 +1,86 @@
+name: Devotional Generator
+
+# Keeps generating NKJV devotional readings until the checkpoint reaches the target.
+# Each run works for up to 5 hours, commits its progress, and the next scheduled run
+# continues from that commit. Nothing is lost if a run is cancelled or the runner is cut off.
+
+on:
+  schedule:
+    # Every 20 minutes. Runs that overlap are queued behind the active one.
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: devotional-generator
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      DEVOTIONAL_TARGET: '31000'
+      DEVOTIONAL_MAX_MINUTES: '300'
+      STARIMG_API_BASE: 'https://ai.starimg.ru/v1'
+      STARIMG_MODEL: 'glm-5.3-flash'
+      STARIMG_REASONING_EFFORT: 'low'
+      STARIMG_CONCURRENCY: '8'
+      STARIMG_VERSES_PER_REQUEST: '8'
+      STARIMG_REQUEST_TIMEOUT_MS: '180000'
+    steps:
+      - name: Check API key is configured
+        env:
+          STARIMG_API_KEY: ${{ secrets.STARIMG_API_KEY }}
+        run: |
+          if [ -z "$STARIMG_API_KEY" ]; then
+            echo "::error::Missing repository secret STARIMG_API_KEY. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Show starting progress
+        run: |
+          node -e "const cp=require('./public/data/devotional-checkpoint.json');console.log('saved='+Object.keys(cp).length)"
+
+      - name: Generate readings
+        env:
+          STARIMG_API_KEY: ${{ secrets.STARIMG_API_KEY }}
+        run: node scripts/generate-api-corpus-to-target.mjs
+
+      - name: Commit progress
+        run: |
+          git config user.name 'devotional-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add public/data/devotional-checkpoint.json
+          if git diff --cached --quiet; then
+            echo 'No new readings in this run.'
+            exit 0
+          fi
+          COUNT=$(node -e "const cp=require('./public/data/devotional-checkpoint.json');console.log(Object.keys(cp).length)")
+          git commit -m "chore(devotional): checkpoint at ${COUNT} readings"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Pushed checkpoint at ${COUNT} readings."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo '::error::Could not push checkpoint after 5 attempts.'
+          exit 1
+
+      - name: Report final progress
+        if: always()
+        run: |
+          node -e "const cp=require('./public/data/devotional-checkpoint.json');const f=['devotion','reflection','action','prayer'];const k=Object.keys(cp);console.log(JSON.stringify({saved:k.length,remaining:Math.max(0,31000-k.length),missingFields:k.filter(x=>!f.every(y=>typeof cp[x]?.[y]==='string'&&cp[x][y].trim())).length}))"
