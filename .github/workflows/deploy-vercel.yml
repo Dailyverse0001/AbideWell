@@ -39,8 +39,8 @@ jobs:
       - name: Confirm the live site
         run: |
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" https://abidewell.vercel.app/devotional.html)
-            echo "attempt $attempt: /devotional.html -> $code"
+            code=$(curl -sL -o /dev/null -w "%{http_code}" https://abidewell.vercel.app/devotional)
+            echo "attempt $attempt: /devotional -> $code"
             if [ "$code" = "200" ]; then exit 0; fi
             sleep 15
           done
