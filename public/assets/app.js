@@ -1,5 +1,6 @@
 /* Abidewell — today's reading */
 import { loadMergedVerses } from './verse-data.js';
+import { renderExplore } from './explore.js';
 
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
@@ -14,10 +15,9 @@ const els = {
   note: $('#verseNote'),
   whisper: $('#whisper'),
   issue: $('#issueNo'),
-  simplifyBlock: $('#simplifyBlock'),
-  simplifyBtn: $('#simplifyBtn'),
-  simplifyPanel: $('#simplifyPanel'),
-  simplifyText: $('#simplifyText'),
+  simplifyBlock: $('#exploreBlock'),
+  simplifyBtn: $('#exploreBtn'),
+  simplifyPanel: $('#explorePanel'),
   prev: $('#prevBtn'),
   next: $('#nextBtn'),
   amen: $('#amenBtn'),
@@ -189,25 +189,42 @@ function render() {
   els.prev.disabled = state.index >= state.verses.length - 1;
   els.next.disabled = state.index <= 0;
 
-  setSimplify(verse.simplify);
+  closeExplore();
   setWhisper();
 }
 
-function setSimplify(value) {
-  const text = value && String(value).trim();
+/* ------------------------------------------------------- explore this verse */
 
-  if (!text) {
-    els.simplifyBlock.hidden = true;
+function closeExplore() {
+  els.simplifyPanel.hidden = true;
+  els.simplifyPanel.replaceChildren();
+  els.simplifyBtn.setAttribute('aria-expanded', 'false');
+}
+
+async function toggleExplore() {
+  const open = els.simplifyBtn.getAttribute('aria-expanded') === 'true';
+
+  if (open) {
     els.simplifyPanel.hidden = true;
     els.simplifyBtn.setAttribute('aria-expanded', 'false');
-    els.simplifyText.textContent = '';
     return;
   }
 
-  els.simplifyText.textContent = text;
-  els.simplifyBlock.hidden = false;
-  els.simplifyPanel.hidden = true;
-  els.simplifyBtn.setAttribute('aria-expanded', 'false');
+  els.simplifyBtn.setAttribute('aria-expanded', 'true');
+  els.simplifyPanel.hidden = false;
+
+  const verse = current();
+  const data = await renderExplore(els.simplifyPanel, verse.reference);
+
+  if (data && !data.simple && verse.simplify && String(verse.simplify).trim()) {
+    const label = document.createElement('p');
+    label.className = 'simplify-label';
+    label.textContent = 'In simple words';
+    const body = document.createElement('p');
+    body.className = 'explore-simple';
+    body.textContent = String(verse.simplify).trim();
+    els.simplifyPanel.append(label, body);
+  }
 }
 
 function setWhisper(forcedIndex) {
@@ -597,11 +614,7 @@ function initGestures() {
   els.copy.addEventListener('click', copyVerse);
   els.share.addEventListener('click', share);
 
-  els.simplifyBtn.addEventListener('click', () => {
-    const open = els.simplifyBtn.getAttribute('aria-expanded') === 'true';
-    els.simplifyBtn.setAttribute('aria-expanded', String(!open));
-    els.simplifyPanel.hidden = open;
-  });
+  els.simplifyBtn.addEventListener('click', toggleExplore);
 
   window.addEventListener('keydown', (e) => {
     if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;

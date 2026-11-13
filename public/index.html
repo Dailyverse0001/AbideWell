@@ -23,7 +23,7 @@
     <span class="rail-dot" aria-hidden="true"></span>
     <a class="rail-link" href="/archive.html">Archive</a>
     <span class="rail-dot" aria-hidden="true"></span>
-    <a class="rail-link" href="/devotional.html">Devotional</a>
+    <a class="rail-link" href="/devotional.html">Explore verse</a>
     <span class="rail-dot" aria-hidden="true"></span>
     <a class="rail-link" href="/admin.html">Post</a>
   </nav>
@@ -59,16 +59,13 @@
       <p class="gloss" id="verseNote" hidden></p>
     </article>
 
-    <section class="simplify" id="simplifyBlock" hidden>
-      <button class="simplify-toggle" id="simplifyBtn" type="button" aria-expanded="false" aria-controls="simplifyPanel">
+    <section class="simplify" id="exploreBlock">
+      <button class="simplify-toggle" id="exploreBtn" type="button" aria-expanded="false" aria-controls="explorePanel">
         <span class="simplify-mark" aria-hidden="true">✦</span>
-        <span>Simplify this verse</span>
+        <span>Explore this verse</span>
         <span class="simplify-chevron" aria-hidden="true">+</span>
       </button>
-      <div class="simplify-panel" id="simplifyPanel" hidden>
-        <p class="simplify-label">In simple words</p>
-        <p class="simplify-text" id="simplifyText"></p>
-      </div>
+      <div class="simplify-panel explore-panel" id="explorePanel" hidden></div>
     </section>
 
     <div class="instruments">

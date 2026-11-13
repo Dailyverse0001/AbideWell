@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Devotional readings — Abidewell</title>
+    <title>Explore verse — Abidewell</title>
     <meta
       name="description"
       content="Read a short devotion, reflection, action and prayer for every verse of the New King James Version."
@@ -112,13 +112,13 @@
     <nav class="rail" aria-label="Sections">
       <a class="rail-link" href="./">Today</a>
       <a class="rail-link" href="archive.html">Archive</a>
-      <a class="rail-link is-current" href="devotional.html">Devotional</a>
+      <a class="rail-link is-current" href="devotional.html">Explore verse</a>
       <a class="rail-link" href="admin.html">Post</a>
     </nav>
 
     <main>
-      <h1>Devotional readings</h1>
-      <p class="lede">A devotion, a reflection, one action and a prayer for every verse. 31,098 readings from Genesis 1:1 to Revelation 22:21.</p>
+      <h1>Explore any verse</h1>
+      <p class="lede">Pick any verse and see the verse itself, a plain-words explanation, a devotion, a reflection, one action and a prayer. 31,098 readings from Genesis 1:1 to Revelation 22:21.</p>
 
       <div class="controls">
         <select id="book" aria-label="Book"></select>
@@ -133,6 +133,10 @@
       <p class="status" id="status">Loading…</p>
       <article class="reading" id="reading" hidden>
         <h2 class="reference" id="ref"></h2>
+        <p class="kicker">The verse</p>
+        <p class="block" id="verseText"></p>
+        <p class="kicker">In simple words</p>
+        <p class="block" id="simple"></p>
         <p class="kicker">Devotion</p>
         <p class="block" id="devotion"></p>
         <p class="kicker">Reflect</p>
@@ -150,7 +154,9 @@
 
     <footer>New King James Version. Devotional text is written for encouragement, not as a substitute for Scripture itself.</footer>
 
-    <script>
+    <script type="module">
+      import { loadExtras } from './assets/explore.js';
+
       const state = { index: null, book: null, chapter: null, verse: null, data: null, order: [] };
 
       const el = (id) => document.getElementById(id);
@@ -194,7 +200,7 @@
         fillSelect(el('verse'), verses, state.verse);
       }
 
-      function render() {
+      async function render() {
         const key = `${state.chapter}:${state.verse}`;
         const reading = state.data.entries[key];
         el('ref').textContent = `${state.book} ${state.chapter}:${state.verse}`;
@@ -213,6 +219,17 @@
         el('prev').disabled = i <= 0;
         el('next').disabled = i < 0 || i >= state.order.length - 1;
         setHash();
+
+        const reference = `${state.book} ${state.chapter}:${state.verse}`;
+        loadExtras(reference)
+          .then((extras) => {
+            if (`${state.book} ${state.chapter}:${state.verse}` !== reference) return;
+            el('verseText').textContent = extras.verse || '';
+            el('simple').textContent = extras.simple || '';
+            el('verseText').hidden = !extras.verse;
+            el('simple').hidden = !extras.simple;
+          })
+          .catch(() => {});
       }
 
       function step(delta) {

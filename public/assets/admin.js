@@ -7,6 +7,7 @@
  *     checked server-side and the token never touches the browser.
  */
 import { loadSchedule, mergeVerseLists } from './verse-data.js';
+import { renderExplore } from './explore.js';
 
 const CFG = window.ABIDEWELL;
 const $ = (sel) => document.querySelector(sel);
@@ -51,6 +52,7 @@ const els = {
   text: $('#text'),
   note: $('#note'),
   simplify: $('#simplify'),
+  adminExplore: $('#adminExplore'),
   randomTheme: $('#randomTheme'),
   randomBtn: $('#randomBtn'),
   randomHint: $('#randomHint'),
@@ -533,9 +535,53 @@ function updatePreview() {
 
 ['input', 'change'].forEach((eventName) => {
   [els.date, els.reference, els.version, els.text, els.note, els.simplify].forEach((field) => {
-    field.addEventListener(eventName, updatePreview);
+    field.addEventListener(eventName, () => {
+      updatePreview();
+      if (field === els.reference) scheduleExplore();
+    });
   });
 });
+
+/* --------------------------------------------------------- explore preview */
+
+let exploreTimer = null;
+let exploreToken = 0;
+let autoSimple = '';
+
+function scheduleExplore() {
+  window.clearTimeout(exploreTimer);
+  exploreTimer = window.setTimeout(updateExplore, 320);
+}
+
+async function updateExplore() {
+  const reference = els.reference.value.trim();
+
+  if (!reference) {
+    els.adminExplore.innerHTML = '<p class="hint">Pick a verse to fill this in.</p>';
+    return;
+  }
+
+  const token = (exploreToken += 1);
+
+  /* Draw into a detached box first: a slow, older lookup must never paint
+     over the verse the editor is looking at now. */
+  const box = document.createElement('div');
+  const data = await renderExplore(box, reference);
+
+  if (token !== exploreToken) return;
+  els.adminExplore.replaceChildren(...box.childNodes);
+
+  if (!data || !data.simple) return;
+
+  /* Keep the plain-words field in step with the reference, but never overwrite
+     something the writer typed themselves. */
+  const current = els.simplify.value.trim();
+  if (!current || current === autoSimple) {
+    els.simplify.value = data.simple;
+    autoSimple = data.simple;
+    updatePreview();
+  }
+}
 
 function resetForm() {
   els.date.value = todayISO();
@@ -543,6 +589,7 @@ function resetForm() {
   els.text.value = '';
   els.note.value = '';
   els.simplify.value = '';
+  autoSimple = '';
   els.version.value = 'NKJV';
 
   if (REF.loaded) {
@@ -574,6 +621,7 @@ function fillScheduledPassage(passage) {
   els.text.value = passage.text || '';
   els.note.value = passage.note || '';
   els.simplify.value = passage.simplify || '';
+  autoSimple = '';
   if (REF.loaded) applyReference(passage.reference);
   else els.reference.value = passage.reference || '';
   updatePreview();
@@ -625,6 +673,7 @@ function syncReference() {
   if (!book || !chapter || !verse) {
     els.reference.value = '';
     updatePreview();
+    scheduleExplore();
     return;
   }
 
@@ -637,6 +686,7 @@ function syncReference() {
 
   els.reference.value = reference;
   updatePreview();
+  scheduleExplore();
 }
 
 function currentBook() {
@@ -1150,6 +1200,7 @@ function renderList(verses) {
       els.text.value = verse.text || '';
       els.note.value = verse.note || '';
       els.simplify.value = verse.simplify || '';
+      autoSimple = '';
       updatePreview();
       setStatus('Editing');
       window.scrollTo({ top: 0, behavior: 'smooth' });

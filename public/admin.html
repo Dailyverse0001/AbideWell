@@ -22,6 +22,8 @@
     <span class="rail-dot" aria-hidden="true"></span>
     <a class="rail-link" href="/archive.html">Archive</a>
     <span class="rail-dot" aria-hidden="true"></span>
+    <a class="rail-link" href="/devotional.html">Explore verse</a>
+    <span class="rail-dot" aria-hidden="true"></span>
     <a class="rail-link is-current" href="/admin.html">Post</a>
   </nav>
 
@@ -169,9 +171,18 @@
         <label for="note">Short reflection <span class="muted">(optional)</span></label>
         <input id="note" maxlength="240" placeholder="One line to sit with today" />
 
-        <label for="simplify">Simple explanation <span class="muted">(optional)</span></label>
+        <label for="simplify">In simple words <span class="muted">(optional)</span></label>
         <textarea id="simplify" rows="3" maxlength="800" placeholder="Explain this verse in plain words, the way you would tell a friend."></textarea>
-        <p class="hint">This is what the “Simplify this verse” button shows.</p>
+        <p class="hint">This is what “Explore this verse” shows on the Today page. It fills in by itself when you pick a verse.</p>
+
+        <div class="panel-head" style="margin-top:22px">
+          <h3 style="font-family:var(--serif);font-weight:500;font-size:1.05rem;margin:0">Explore this verse</h3>
+          <span class="chip">Auto-filled</span>
+        </div>
+        <p class="hint" style="margin-top:4px">What readers see when they tap “Explore this verse”: the verse, plain words, devotion, reflection, action and prayer.</p>
+        <div class="explore-preview" id="adminExplore">
+          <p class="hint">Pick a verse to fill this in.</p>
+        </div>
 
         <div class="panel-actions">
           <button class="btn-primary" id="postBtn" type="button">Post verse</button>
