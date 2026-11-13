@@ -8,8 +8,8 @@
       name="description"
       content="Read a short devotion, reflection, action and prayer for every verse of the New King James Version."
     />
-    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -110,10 +110,10 @@
   </head>
   <body>
     <nav class="rail" aria-label="Sections">
-      <a class="rail-link" href="/">Today</a>
-      <a class="rail-link" href="/archive.html">Archive</a>
-      <a class="rail-link is-current" href="/devotional.html">Devotional</a>
-      <a class="rail-link" href="/admin.html">Post</a>
+      <a class="rail-link" href="./">Today</a>
+      <a class="rail-link" href="archive.html">Archive</a>
+      <a class="rail-link is-current" href="devotional.html">Devotional</a>
+      <a class="rail-link" href="admin.html">Post</a>
     </nav>
 
     <main>
@@ -182,7 +182,7 @@
 
       async function loadBook(slug) {
         status.textContent = 'Loading book…';
-        const res = await fetch(`/data/devotional/${slug}.json`, { cache: 'force-cache' });
+        const res = await fetch(`data/devotional/${slug}.json`, { cache: 'force-cache' });
         if (!res.ok) throw new Error(`Could not load ${slug} (${res.status})`);
         return res.json();
       }
@@ -243,7 +243,7 @@
       }
 
       async function init() {
-        const res = await fetch('/data/devotional/index.json', { cache: 'force-cache' });
+        const res = await fetch('data/devotional/index.json', { cache: 'force-cache' });
         if (!res.ok) throw new Error('Could not load the devotional index.');
         state.index = await res.json();
         fillSelect(el('book'), state.index.books.map((b) => b.book), null);
