@@ -1,0 +1,48 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: team_gXX4tdT2H18t4UXB7Ajk6cuW
+      VERCEL_PROJECT_ID: prj_czic351oBLyfQDN8Xa9B33KMYcEb
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Link the Vercel project
+        run: vercel link --yes --project abidewell --scope dailyverse0001 --token "$VERCEL_TOKEN"
+
+      - name: Deploy to production
+        run: vercel deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Confirm the live site
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://abidewell.vercel.app/devotional.html)
+            echo "attempt $attempt: /devotional.html -> $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 15
+          done
+          echo "::error::Live site did not return 200 after deploy"
+          exit 1
