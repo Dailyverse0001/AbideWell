@@ -129,29 +129,6 @@ body.intro-open > :not(#introScreen) { visibility: hidden; }
 
 .intro-verse cite span { color: var(--accent); padding: 0 7px; }
 
-.intro-enter {
-  display: inline-flex;
-  align-items: center;
-  gap: 26px;
-  margin-top: 42px;
-  padding: 14px 0;
-  border: 0;
-  border-bottom: 1px solid var(--accent);
-  background: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-family: var(--sans);
-  font-size: .68rem;
-  font-weight: 600;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  animation: intro-rise .7s .56s var(--ease) both;
-}
-
-.intro-enter span:last-child { font-size: 1.15rem; transition: transform .2s var(--ease); }
-.intro-enter:hover span:last-child { transform: translateX(5px); }
-.intro-enter:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
-
 .intro-colophon {
   position: absolute;
   bottom: max(20px, env(safe-area-inset-bottom));
@@ -169,8 +146,10 @@ body.intro-open > :not(#introScreen) { visibility: hidden; }
 @keyframes intro-arrive { from { opacity: 0; } to { opacity: 1; } }
 @keyframes intro-mark { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes intro-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes intro-verse-leave { to { opacity: 0; transform: translateY(-8px); } }
 
-.intro-screen.is-leaving { animation: intro-leave .48s var(--ease) both; pointer-events: none; }
+.intro-screen.is-verse-leaving .intro-verse { animation: intro-verse-leave .32s ease both; }
+.intro-screen.is-leaving { animation: intro-leave .38s var(--ease) both; pointer-events: none; }
 @keyframes intro-leave { to { opacity: 0; transform: translateY(-10px); visibility: hidden; } }
 
 .burst {
@@ -1162,14 +1141,13 @@ select option { background: var(--paper); color: var(--ink); }
     transition-duration: .001ms !important;
   }
   .burst { animation: none; }
-  .intro-screen, .intro-logo, .intro-kicker, .intro-verse, .intro-enter, .intro-colophon { animation: none; }
+  .intro-screen, .intro-logo, .intro-kicker, .intro-verse, .intro-colophon { animation: none; }
 }
 
 @media (max-width: 520px) {
   .intro-screen { padding: 28px 24px calc(54px + env(safe-area-inset-bottom)); }
   .intro-logo { width: min(244px, 76vw); margin-bottom: 30px; }
   .intro-verse p { font-size: clamp(1.32rem, 6vw, 1.72rem); line-height: 1.5; }
-  .intro-enter { margin-top: 32px; }
 }
 
 /* ---------- Print ------------------------------------------------------- */

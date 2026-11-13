@@ -29,8 +29,7 @@ const els = {
   issue: $('#issueNo'),
   colophon: $('#colophonDate'),
   toast: $('#toast'),
-  intro: $('#introScreen'),
-  introEnter: $('#introEnter')
+  intro: $('#introScreen')
 };
 
 const STREAK_KEY = 'abidewell.streak.v2';
@@ -196,21 +195,23 @@ function render() {
 }
 
 function initIntro() {
-  if (!els.intro || !els.introEnter) return;
+  if (!els.intro) return;
 
   const background = [...document.body.children].filter((node) => node !== els.intro);
   background.forEach((node) => { node.inert = true; });
-  els.introEnter.focus({ preventScroll: true });
+  els.intro.tabIndex = -1;
+  els.intro.focus({ preventScroll: true });
 
-  els.introEnter.addEventListener('click', () => {
-    els.intro.classList.add('is-leaving');
-    window.setTimeout(() => {
-      els.intro.hidden = true;
-      document.body.classList.remove('intro-open');
-      background.forEach((node) => { node.inert = false; });
-      els.reading.focus({ preventScroll: true });
-    }, 500);
-  }, { once: true });
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const closeAfter = reducedMotion ? 1500 : 2800;
+  window.setTimeout(() => els.intro.classList.add('is-verse-leaving'), reducedMotion ? 1000 : 2000);
+  window.setTimeout(() => els.intro.classList.add('is-leaving'), reducedMotion ? 1250 : 2400);
+  window.setTimeout(() => {
+    els.intro.hidden = true;
+    document.body.classList.remove('intro-open');
+    background.forEach((node) => { node.inert = false; });
+    els.reading.focus({ preventScroll: true });
+  }, closeAfter);
 }
 
 /* ------------------------------------------------------- explore this verse */
@@ -655,13 +656,14 @@ function initServiceWorker() {
 async function init() {
   state.today = todayISO();
   buildTicks();
+  render();
+  initIntro();
 
   const list = await loadVerses();
   state.verses = usable(list);
   state.index = 0;
 
   render();
-  initIntro();
   initGestures();
   updateStreak();
   initServiceWorker();
