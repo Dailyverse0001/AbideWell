@@ -454,8 +454,55 @@ body {
 
 /* ---------- Explore this verse ------------------------------------------ */
 
-.explore-panel .simplify-label:not(:first-child) {
+.explore-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.explore-ref {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.14rem;
+  font-weight: 600;
+  letter-spacing: .005em;
+  color: var(--ink);
+}
+
+.explore-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 26px;
+}
+
+.explore-row .simplify-label { margin: 0; }
+
+.explore-head + .explore-row { margin-top: 0; }
+
+.explore-copy {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: .64rem;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: color .2s var(--ease), border-color .2s var(--ease);
+}
+
+.explore-copy:hover,
+.explore-copy.is-done {
+  color: var(--accent-deep);
+  border-color: var(--accent);
 }
 
 .explore-verse {

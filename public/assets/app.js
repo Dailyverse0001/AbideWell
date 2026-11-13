@@ -205,8 +205,7 @@ async function toggleExplore() {
   const open = els.simplifyBtn.getAttribute('aria-expanded') === 'true';
 
   if (open) {
-    els.simplifyPanel.hidden = true;
-    els.simplifyBtn.setAttribute('aria-expanded', 'false');
+    closeExplore();
     return;
   }
 
@@ -214,7 +213,7 @@ async function toggleExplore() {
   els.simplifyPanel.hidden = false;
 
   const verse = current();
-  const data = await renderExplore(els.simplifyPanel, verse.reference);
+  const data = await renderExplore(els.simplifyPanel, verse.reference, { copyButtons: true });
 
   if (data && !data.simple && verse.simplify && String(verse.simplify).trim()) {
     const label = document.createElement('p');

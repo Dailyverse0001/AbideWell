@@ -87,6 +87,15 @@
       .kicker { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 1.1rem 0 0.25rem; }
       .block { font-family: Literata, Georgia, serif; font-size: 1.02rem; }
       .block.quote { border-left: 3px solid var(--line); padding-left: 0.85rem; color: #403a33; }
+      .explore-head { margin: 0 0 1.1rem; }
+      .explore-ref { margin: 0; font: 600 1.25rem Literata, Georgia, serif; }
+      .explore-row { margin-top: 1.2rem; }
+      .explore-row .simplify-label { margin: 0 0 0.25rem; }
+      .simplify-label { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+      .explore-verse, .explore-simple, .explore-text { font: 1.02rem/1.65 Literata, Georgia, serif; }
+      .explore-quote { border-left: 3px solid var(--line); padding-left: 0.85rem; color: #403a33; }
+      .explore-prayer { white-space: pre-line; }
+      .explore-status { color: var(--muted); }
       .empty { color: var(--muted); }
       .pager { display: flex; gap: 0.5rem; margin-top: 1.1rem; }
       .pager button {
@@ -132,19 +141,7 @@
 
       <p class="status" id="status">Loading…</p>
       <article class="reading" id="reading" hidden>
-        <h2 class="reference" id="ref"></h2>
-        <p class="kicker">The verse</p>
-        <p class="block" id="verseText"></p>
-        <p class="kicker">In simple words</p>
-        <p class="block" id="simple"></p>
-        <p class="kicker">Devotion</p>
-        <p class="block" id="devotion"></p>
-        <p class="kicker">Reflect</p>
-        <p class="block quote" id="reflection"></p>
-        <p class="kicker">Today</p>
-        <p class="block" id="action"></p>
-        <p class="kicker">Prayer</p>
-        <p class="block" id="prayer"></p>
+        <div id="exploreBody"></div>
         <div class="pager">
           <button id="prev" type="button">Previous verse</button>
           <button id="next" type="button">Next verse</button>
@@ -155,7 +152,7 @@
     <footer>New King James Version. Devotional text is written for encouragement, not as a substitute for Scripture itself.</footer>
 
     <script type="module">
-      import { loadExtras } from './assets/explore.js';
+      import { renderExplore } from './assets/explore.js';
 
       const state = { index: null, book: null, chapter: null, verse: null, data: null, order: [] };
 
@@ -200,19 +197,16 @@
         fillSelect(el('verse'), verses, state.verse);
       }
 
+      let renderToken = 0;
+
       async function render() {
         const key = `${state.chapter}:${state.verse}`;
         const reading = state.data.entries[key];
-        el('ref').textContent = `${state.book} ${state.chapter}:${state.verse}`;
         if (!reading) {
           el('reading').hidden = true;
           status.textContent = 'No reading for this verse.';
           return;
         }
-        el('devotion').textContent = reading.devotion;
-        el('reflection').textContent = reading.reflection;
-        el('action').textContent = reading.action;
-        el('prayer').textContent = reading.prayer;
         el('reading').hidden = false;
         status.textContent = '';
         const i = state.order.indexOf(key);
@@ -220,16 +214,12 @@
         el('next').disabled = i < 0 || i >= state.order.length - 1;
         setHash();
 
+        const token = (renderToken += 1);
         const reference = `${state.book} ${state.chapter}:${state.verse}`;
-        loadExtras(reference)
-          .then((extras) => {
-            if (`${state.book} ${state.chapter}:${state.verse}` !== reference) return;
-            el('verseText').textContent = extras.verse || '';
-            el('simple').textContent = extras.simple || '';
-            el('verseText').hidden = !extras.verse;
-            el('simple').hidden = !extras.simple;
-          })
-          .catch(() => {});
+        const box = document.createElement('div');
+        await renderExplore(box, reference);
+        if (token !== renderToken) return;
+        el('exploreBody').replaceChildren(...box.childNodes);
       }
 
       function step(delta) {

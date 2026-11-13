@@ -153,8 +153,54 @@ export async function loadExtras(reference) {
   };
 }
 
+const SECTIONS = [
+  ['verse', '📖 The verse', 'explore-verse'],
+  ['simple', '💡 In simple words', 'explore-simple'],
+  ['devotion', '🕊️ Devotion', 'explore-text'],
+  ['reflection', '🪞 Reflect', 'explore-text explore-quote'],
+  ['action', '🌱 Today', 'explore-text'],
+  ['prayer', '🙏 Prayer', 'explore-text explore-prayer']
+];
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {}
+
+  try {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '-1000px';
+    area.style.opacity = '0';
+    document.body.append(area);
+    area.select();
+    const done = document.execCommand('copy');
+    area.remove();
+    return done;
+  } catch {
+    return false;
+  }
+}
+
+function flashCopy(button, message) {
+  if (!button.dataset.label) button.dataset.label = button.textContent;
+  window.clearTimeout(Number(button.dataset.timer || 0));
+  button.textContent = message;
+  button.classList.add('is-done');
+  const timer = window.setTimeout(() => {
+    button.textContent = button.dataset.label;
+    button.classList.remove('is-done');
+  }, 1600);
+  button.dataset.timer = String(timer);
+}
+
 /** Fill a host element with the Explore content. Returns the data or null. */
-export async function renderExplore(host, reference) {
+export async function renderExplore(host, reference, options = {}) {
   if (!host) return null;
 
   host.replaceChildren();
@@ -178,33 +224,69 @@ export async function renderExplore(host, reference) {
     return null;
   }
 
-  const blocks = [
-    ['The verse', data.verse, 'explore-verse'],
-    ['In simple words', data.simple, 'explore-simple'],
-    ['Devotion', data.devotion, 'explore-text'],
-    ['Reflect', data.reflection, 'explore-text explore-quote'],
-    ['Today', data.action, 'explore-text'],
-    ['Prayer', data.prayer, 'explore-text explore-prayer']
-  ];
+  const rows = SECTIONS.map(([key, label, className]) => ({
+    label,
+    className,
+    text: String(data[key] || '').trim()
+  })).filter((row) => row.text);
 
-  let shown = 0;
-  for (const [label, text, className] of blocks) {
-    if (!text) continue;
-    const kicker = document.createElement('p');
-    kicker.className = 'simplify-label';
-    kicker.textContent = label;
-
-    const body = document.createElement('p');
-    body.className = className;
-    body.textContent = text;
-
-    host.append(kicker, body);
-    shown += 1;
-  }
-
-  if (!shown) {
+  if (!rows.length) {
     status.textContent = 'No reading for this verse yet.';
     host.append(status);
+    return data;
+  }
+
+  /* Reference first, so the reader always knows the book, chapter and verse. */
+  const head = document.createElement('div');
+  head.className = 'explore-head';
+
+  const ref = document.createElement('p');
+  ref.className = 'explore-ref';
+  ref.textContent = data.reference;
+
+  head.append(ref);
+  if (options.copyButtons) {
+    const copyAll = document.createElement('button');
+    copyAll.type = 'button';
+    copyAll.className = 'explore-copy explore-copy--all';
+    copyAll.textContent = 'Copy all';
+    copyAll.addEventListener('click', async () => {
+      const text = [data.reference, '']
+        .concat(rows.map((row) => row.label + '\n' + row.text + '\n'))
+        .join('\n')
+        .trim();
+      flashCopy(copyAll, (await copyText(text)) ? 'Copied ✓' : 'Copy failed');
+    });
+    head.append(copyAll);
+  }
+  host.append(head);
+
+  for (const row of rows) {
+    const line = document.createElement('div');
+    line.className = 'explore-row';
+
+    const kicker = document.createElement('p');
+    kicker.className = 'simplify-label';
+    kicker.textContent = row.label;
+
+    line.append(kicker);
+    if (options.copyButtons) {
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'explore-copy';
+      copy.textContent = 'Copy';
+      copy.setAttribute('aria-label', 'Copy ' + row.label.replace(/^\S+\s/, ''));
+      copy.addEventListener('click', async () => {
+        flashCopy(copy, (await copyText(row.label + '\n' + row.text)) ? 'Copied ✓' : 'Copy failed');
+      });
+      line.append(copy);
+    }
+
+    const body = document.createElement('p');
+    body.className = row.className;
+    body.textContent = row.text;
+
+    host.append(line, body);
   }
 
   return data;
