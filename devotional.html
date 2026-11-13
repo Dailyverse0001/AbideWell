@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Devotional readings — Abidewell</title>
+    <meta
+      name="description"
+      content="Read a short devotion, reflection, action and prayer for every verse of the New King James Version."
+    />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f7f3ea;
+        --card: #fffdf8;
+        --ink: #2a2723;
+        --muted: #7b7268;
+        --line: #e2d9c9;
+        --accent: #8a5a3b;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .rail {
+        display: flex;
+        gap: 1.1rem;
+        flex-wrap: wrap;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--card);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      .rail-link {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.86rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.25rem 0;
+      }
+      .rail-link:hover { color: var(--accent); }
+      .rail-link.is-current { color: var(--accent); border-bottom: 2px solid var(--accent); }
+      main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+      h1 { font-family: Literata, Georgia, serif; font-weight: 500; font-size: 1.9rem; margin: 0.5rem 0 0.35rem; }
+      .lede { color: var(--muted); margin: 0 0 1.4rem; }
+      .controls { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+      select, input[type='search'] {
+        font: inherit;
+        font-size: 0.95rem;
+        color: var(--ink);
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.7rem;
+        min-width: 0;
+      }
+      input[type='search'] { flex: 1 1 12rem; }
+      select { flex: 0 1 auto; }
+      .status { color: var(--muted); font-size: 0.9rem; min-height: 1.4rem; }
+      .reading {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 1.25rem 1.35rem;
+        margin-top: 0.5rem;
+      }
+      .reference {
+        font-family: Literata, Georgia, serif;
+        font-size: 1.25rem;
+        margin: 0 0 0.15rem;
+      }
+      .kicker { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 1.1rem 0 0.25rem; }
+      .block { font-family: Literata, Georgia, serif; font-size: 1.02rem; }
+      .block.quote { border-left: 3px solid var(--line); padding-left: 0.85rem; color: #403a33; }
+      .empty { color: var(--muted); }
+      .pager { display: flex; gap: 0.5rem; margin-top: 1.1rem; }
+      .pager button {
+        font: inherit;
+        font-size: 0.9rem;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        padding: 0.45rem 0.8rem;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      .pager button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+      .pager button:disabled { opacity: 0.45; cursor: default; }
+      .suggestions { list-style: none; margin: 0.35rem 0 0; padding: 0; border: 1px solid var(--line); border-radius: 0.5rem; overflow: hidden; background: var(--card); }
+      .suggestions:empty { display: none; }
+      .suggestions li button { width: 100%; text-align: left; font: inherit; background: none; border: 0; padding: 0.5rem 0.7rem; cursor: pointer; color: var(--ink); }
+      .suggestions li button:hover { background: #f2ebdd; }
+      footer { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem 3rem; color: var(--muted); font-size: 0.82rem; }
+    </style>
+  </head>
+  <body>
+    <nav class="rail" aria-label="Sections">
+      <a class="rail-link" href="./">Today</a>
+      <a class="rail-link" href="archive.html">Archive</a>
+      <a class="rail-link is-current" href="devotional.html">Devotional</a>
+      <a class="rail-link" href="admin.html">Post</a>
+    </nav>
+
+    <main>
+      <h1>Devotional readings</h1>
+      <p class="lede">A devotion, a reflection, one action and a prayer for every verse. 31,098 readings from Genesis 1:1 to Revelation 22:21.</p>
+
+      <div class="controls">
+        <select id="book" aria-label="Book"></select>
+        <select id="chapter" aria-label="Chapter"></select>
+        <select id="verse" aria-label="Verse"></select>
+      </div>
+      <div class="controls">
+        <input id="search" type="search" placeholder="Search a reference, e.g. Psalm 23:1" aria-label="Search a reference" autocomplete="off" />
+      </div>
+      <ul class="suggestions" id="suggestions"></ul>
+
+      <p class="status" id="status">Loading…</p>
+      <article class="reading" id="reading" hidden>
+        <h2 class="reference" id="ref"></h2>
+        <p class="kicker">Devotion</p>
+        <p class="block" id="devotion"></p>
+        <p class="kicker">Reflect</p>
+        <p class="block quote" id="reflection"></p>
+        <p class="kicker">Today</p>
+        <p class="block" id="action"></p>
+        <p class="kicker">Prayer</p>
+        <p class="block" id="prayer"></p>
+        <div class="pager">
+          <button id="prev" type="button">Previous verse</button>
+          <button id="next" type="button">Next verse</button>
+        </div>
+      </article>
+    </main>
+
+    <footer>New King James Version. Devotional text is written for encouragement, not as a substitute for Scripture itself.</footer>
+
+    <script>
+      const state = { index: null, book: null, chapter: null, verse: null, data: null, order: [] };
+
+      const el = (id) => document.getElementById(id);
+      const status = el('status');
+
+      const slugify = (name) => name.toLowerCase().replace(/\s+/g, '-');
+
+      function parseHash() {
+        const raw = decodeURIComponent(location.hash.replace(/^#/, ''));
+        const m = raw.match(/^(.*?)\s+(\d+):(\d+)$/);
+        return m ? { book: m[1], chapter: Number(m[2]), verse: Number(m[3]) } : null;
+      }
+
+      function setHash() {
+        if (!state.book || !state.chapter || !state.verse) return;
+        history.replaceState(null, '', `#${encodeURIComponent(state.book)} ${state.chapter}:${state.verse}`);
+      }
+
+      function fillSelect(select, values, current, format) {
+        select.innerHTML = '';
+        for (const value of values) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = format ? format(value) : String(value);
+          if (value === current) option.selected = true;
+          select.append(option);
+        }
+      }
+
+      async function loadBook(slug) {
+        status.textContent = 'Loading book…';
+        const res = await fetch(`data/devotional/${slug}.json`, { cache: 'force-cache' });
+        if (!res.ok) throw new Error(`Could not load ${slug} (${res.status})`);
+        return res.json();
+      }
+
+      function rebuildVerseOptions() {
+        const chapters = state.index.books.find((b) => b.book === state.book).chapters;
+        const chapter = chapters.find((c) => c.chapter === state.chapter);
+        const verses = Array.from({ length: chapter.verses }, (_, i) => i + 1);
+        fillSelect(el('verse'), verses, state.verse);
+      }
+
+      function render() {
+        const key = `${state.chapter}:${state.verse}`;
+        const reading = state.data.entries[key];
+        el('ref').textContent = `${state.book} ${state.chapter}:${state.verse}`;
+        if (!reading) {
+          el('reading').hidden = true;
+          status.textContent = 'No reading for this verse.';
+          return;
+        }
+        el('devotion').textContent = reading.devotion;
+        el('reflection').textContent = reading.reflection;
+        el('action').textContent = reading.action;
+        el('prayer').textContent = reading.prayer;
+        el('reading').hidden = false;
+        status.textContent = '';
+        const i = state.order.indexOf(key);
+        el('prev').disabled = i <= 0;
+        el('next').disabled = i < 0 || i >= state.order.length - 1;
+        setHash();
+      }
+
+      function step(delta) {
+        const i = state.order.indexOf(`${state.chapter}:${state.verse}`);
+        const nextKey = state.order[i + delta];
+        if (!nextKey) return;
+        const [chapter, verse] = nextKey.split(':').map(Number);
+        state.chapter = chapter;
+        state.verse = verse;
+        el('chapter').value = String(chapter);
+        rebuildVerseOptions();
+        el('verse').value = String(verse);
+        render();
+      }
+
+      async function selectBook(bookName, chapter, verse) {
+        state.book = bookName;
+        el('book').value = bookName;
+        const meta = state.index.books.find((b) => b.book === bookName);
+        state.chapter = chapter || meta.chapters[0].chapter;
+        fillSelect(el('chapter'), meta.chapters.map((c) => c.chapter), state.chapter, (c) => `Chapter ${c}`);
+        state.verse = verse || 1;
+        rebuildVerseOptions();
+        el('verse').value = String(state.verse);
+        state.data = await loadBook(meta.slug);
+        state.order = Object.keys(state.data.entries);
+        render();
+      }
+
+      async function init() {
+        const res = await fetch('data/devotional/index.json', { cache: 'force-cache' });
+        if (!res.ok) throw new Error('Could not load the devotional index.');
+        state.index = await res.json();
+        fillSelect(el('book'), state.index.books.map((b) => b.book), null);
+
+        const wanted = parseHash() || { book: state.index.books[0].book, chapter: 1, verse: 1 };
+        await selectBook(wanted.book, wanted.chapter, wanted.verse);
+
+        el('book').addEventListener('change', (event) => selectBook(event.target.value, 1, 1));
+        el('chapter').addEventListener('change', (event) => {
+          state.chapter = Number(event.target.value);
+          state.verse = 1;
+          rebuildVerseOptions();
+          el('verse').value = '1';
+          render();
+        });
+        el('verse').addEventListener('change', (event) => {
+          state.verse = Number(event.target.value);
+          render();
+        });
+        el('prev').addEventListener('click', () => step(-1));
+        el('next').addEventListener('click', () => step(1));
+
+        const search = el('search');
+        const suggestions = el('suggestions');
+        search.addEventListener('input', () => {
+          const query = search.value.trim().toLowerCase();
+          suggestions.innerHTML = '';
+          if (query.length < 2) return;
+          const hits = [];
+          for (const bookMeta of state.index.books) {
+            const name = bookMeta.book.toLowerCase();
+            if (!name.startsWith(query) && !name.includes(query)) continue;
+            for (const chapter of bookMeta.chapters) {
+              for (let v = 1; v <= chapter.verses && hits.length < 12; v += 1) {
+                hits.push(`${bookMeta.book} ${chapter.chapter}:${v}`);
+              }
+              if (hits.length >= 12) break;
+            }
+            if (hits.length >= 12) break;
+          }
+          for (const hit of hits) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = hit;
+            button.addEventListener('click', async () => {
+              suggestions.innerHTML = '';
+              search.value = '';
+              const parsed = parseHashFromText(hit);
+              el('book').value = parsed.book;
+              await selectBook(parsed.book, parsed.chapter, parsed.verse);
+            });
+            li.append(button);
+            suggestions.append(li);
+          }
+        });
+      }
+
+      function parseHashFromText(text) {
+        const m = text.match(/^(.*?)\s+(\d+):(\d+)$/);
+        return { book: m[1], chapter: Number(m[2]), verse: Number(m[3]) };
+      }
+
+      init().catch((error) => {
+        status.textContent = `Could not load the readings: ${error.message}`;
+      });
+    </script>
+  </body>
+</html>
