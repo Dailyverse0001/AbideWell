@@ -28,7 +28,9 @@ const els = {
   streakMarks: $('#streakMarks'),
   issue: $('#issueNo'),
   colophon: $('#colophonDate'),
-  toast: $('#toast')
+  toast: $('#toast'),
+  intro: $('#introScreen'),
+  introEnter: $('#introEnter')
 };
 
 const STREAK_KEY = 'abidewell.streak.v2';
@@ -191,6 +193,24 @@ function render() {
 
   closeExplore();
   setWhisper();
+}
+
+function initIntro() {
+  if (!els.intro || !els.introEnter) return;
+
+  const background = [...document.body.children].filter((node) => node !== els.intro);
+  background.forEach((node) => { node.inert = true; });
+  els.introEnter.focus({ preventScroll: true });
+
+  els.introEnter.addEventListener('click', () => {
+    els.intro.classList.add('is-leaving');
+    window.setTimeout(() => {
+      els.intro.hidden = true;
+      document.body.classList.remove('intro-open');
+      background.forEach((node) => { node.inert = false; });
+      els.reading.focus({ preventScroll: true });
+    }, 500);
+  }, { once: true });
 }
 
 /* ------------------------------------------------------- explore this verse */
@@ -641,6 +661,7 @@ async function init() {
   state.index = 0;
 
   render();
+  initIntro();
   initGestures();
   updateStreak();
   initServiceWorker();

@@ -23,7 +23,7 @@
   --ease: cubic-bezier(.2, .7, .3, 1);
 }
 
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; }
 
 body {
   margin: 0;
@@ -55,6 +55,123 @@ body {
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.22'/></svg>");
 }
+
+/* ---------- Isaiah 41:10 welcome --------------------------------------- */
+
+body.intro-open > :not(#introScreen) { visibility: hidden; }
+
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: clamp(28px, 6vw, 76px);
+  background: var(--paper);
+  text-align: center;
+  animation: intro-arrive .9s var(--ease) both;
+}
+
+.intro-screen[hidden] { display: none; }
+
+.intro-content {
+  width: min(100%, 680px);
+  margin: auto;
+}
+
+.intro-logo {
+  display: block;
+  width: min(280px, 78vw);
+  height: auto;
+  margin: 0 auto 36px;
+  animation: intro-mark .8s .1s var(--ease) both;
+}
+
+.intro-kicker {
+  margin: 0 0 22px;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: .66rem;
+  font-weight: 600;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  animation: intro-rise .7s .25s var(--ease) both;
+}
+
+.intro-verse {
+  margin: 0 auto;
+  max-width: 620px;
+  animation: intro-rise .8s .38s var(--ease) both;
+}
+
+.intro-verse p {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.38rem, 3.5vw, 2.12rem);
+  font-weight: 400;
+  line-height: 1.48;
+  letter-spacing: -.018em;
+  text-wrap: pretty;
+}
+
+.intro-verse cite {
+  display: block;
+  margin-top: 24px;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: .67rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+}
+
+.intro-verse cite span { color: var(--accent); padding: 0 7px; }
+
+.intro-enter {
+  display: inline-flex;
+  align-items: center;
+  gap: 26px;
+  margin-top: 42px;
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  animation: intro-rise .7s .56s var(--ease) both;
+}
+
+.intro-enter span:last-child { font-size: 1.15rem; transition: transform .2s var(--ease); }
+.intro-enter:hover span:last-child { transform: translateX(5px); }
+.intro-enter:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+
+.intro-colophon {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: .56rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  animation: intro-rise .7s .68s var(--ease) both;
+}
+
+@keyframes intro-arrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes intro-mark { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes intro-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+.intro-screen.is-leaving { animation: intro-leave .48s var(--ease) both; pointer-events: none; }
+@keyframes intro-leave { to { opacity: 0; transform: translateY(-10px); visibility: hidden; } }
 
 .burst {
   position: fixed;
@@ -222,6 +339,9 @@ body {
   transition: transform .5s var(--ease);
 }
 
+.reading:focus { outline: none; }
+.reading:focus-visible { outline: 1px solid var(--ink-faint); outline-offset: 8px; }
+
 .verse-text,
 .citation,
 .gloss,
@@ -259,10 +379,8 @@ body {
 }
 
 .verse-text::first-letter {
-  float: left;
-  font-size: 3.9em;
-  line-height: .78;
-  padding: .04em .06em 0 0;
+  font-size: 1.28em;
+  line-height: inherit;
   color: var(--accent);
   font-weight: 600;
 }
@@ -1022,7 +1140,6 @@ select option { background: var(--paper); color: var(--ink); }
   .altar { padding-left: 14px; padding-right: 14px; }
   .archive-page { padding-left: 14px; padding-right: 14px; }
   .halo { top: 40px; width: 94vw; }
-  .verse-text::first-letter { font-size: 3.2em; }
   .dev-summary { padding: 20px 0; }
 }
 
@@ -1045,6 +1162,14 @@ select option { background: var(--paper); color: var(--ink); }
     transition-duration: .001ms !important;
   }
   .burst { animation: none; }
+  .intro-screen, .intro-logo, .intro-kicker, .intro-verse, .intro-enter, .intro-colophon { animation: none; }
+}
+
+@media (max-width: 520px) {
+  .intro-screen { padding: 28px 24px calc(54px + env(safe-area-inset-bottom)); }
+  .intro-logo { width: min(244px, 76vw); margin-bottom: 30px; }
+  .intro-verse p { font-size: clamp(1.32rem, 6vw, 1.72rem); line-height: 1.5; }
+  .intro-enter { margin-top: 32px; }
 }
 
 /* ---------- Print ------------------------------------------------------- */
