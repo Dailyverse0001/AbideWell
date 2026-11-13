@@ -1,5 +1,5 @@
 /* Abidewell — offline shell. Bump CACHE when you change the design. */
-const CACHE = 'abidewell-v8';
+const CACHE = 'abidewell-v9';
 const ROOT = self.registration.scope;
 
 const SHELL = [

@@ -688,6 +688,144 @@ code {
 
 /* ---------- Archive ----------------------------------------------------- */
 
+.explore-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(88px, 12vh, 132px) 28px 56px;
+}
+
+.explore-page-head { margin-bottom: 28px; }
+.explore-page-head .eyebrow { margin-bottom: 0; }
+.explore-page-head .eyebrow::before { display: none; }
+
+.explore-page-head h1 {
+  margin: 10px 0 0;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.04;
+  letter-spacing: -.03em;
+}
+
+.explore-lede {
+  max-width: 62ch;
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: .88rem;
+  line-height: 1.65;
+}
+
+.explore-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(72px, .6fr);
+  gap: 10px;
+  max-width: 660px;
+}
+
+.explore-controls select,
+.explore-controls input[type="search"] {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 0;
+  background: rgba(255, 253, 246, .54);
+  color: var(--ink);
+  font: 500 .7rem var(--sans);
+  letter-spacing: .08em;
+}
+
+.explore-controls select:focus-visible,
+.explore-controls input[type="search"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.explore-controls input[type="search"] { grid-column: 1 / -1; }
+
+.suggestions {
+  max-width: 660px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ink-faint);
+}
+
+.suggestions:empty { display: none; }
+.suggestions li { border-bottom: 1px solid var(--ink-faint); }
+
+.suggestions li button {
+  width: 100%;
+  padding: 11px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: .8rem var(--sans);
+  text-align: left;
+}
+
+.suggestions li button:hover,
+.suggestions li button:focus-visible { color: var(--accent); }
+
+.explore-page-status {
+  min-height: 1.5em;
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-size: .76rem;
+}
+
+.explore-reading {
+  max-width: 660px;
+  margin-top: 12px;
+  padding-top: 22px;
+  border-top: 1px solid var(--ink-faint);
+}
+
+.explore-reading[hidden] { display: none; }
+.explore-reading .explore-ref { font-size: 1.28rem; }
+.explore-reading .explore-head { align-items: center; margin-bottom: 24px; }
+.explore-reading .explore-copy { padding: 8px 14px; }
+.explore-reading .explore-row { margin-top: 30px; }
+.explore-reading .explore-head + .explore-row { margin-top: 0; }
+.explore-reading .explore-verse { font-size: 1.22rem; line-height: 1.68; }
+.explore-reading .explore-simple,
+.explore-reading .explore-text { font-size: 1.05rem; line-height: 1.7; }
+
+.explore-page .pager {
+  display: flex;
+  gap: 10px;
+  margin-top: 36px;
+}
+
+.explore-page .pager button {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: 500 .62rem var(--sans);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.explore-page .pager button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.explore-page .pager button:disabled { opacity: .45; cursor: default; }
+
+.explore-footer {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 28px 36px;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: .76rem;
+  font-style: italic;
+  text-align: center;
+}
+
 .archive-page {
   max-width: 760px;
   margin: 0 auto;
@@ -1118,8 +1256,17 @@ select option { background: var(--paper); color: var(--ink); }
   .issue { display: none; }
   .altar { padding-left: 14px; padding-right: 14px; }
   .archive-page { padding-left: 14px; padding-right: 14px; }
+  .explore-page { padding-left: 14px; padding-right: 14px; }
+  .explore-footer { padding-left: 14px; padding-right: 14px; }
   .halo { top: 40px; width: 94vw; }
   .dev-summary { padding: 20px 0; }
+}
+
+@media (max-width: 520px) {
+  .explore-controls { grid-template-columns: minmax(0, 1fr) minmax(0, .7fr); }
+  .explore-controls #book,
+  .explore-controls input[type="search"] { grid-column: 1 / -1; }
+  .explore-reading .explore-verse { font-size: 1.1rem; }
 }
 
 @media (max-width: 420px) {
