@@ -616,7 +616,8 @@ function randomIndex(max) {
 }
 
 function fillScheduledPassage(passage) {
-  els.date.value = passage.date;
+  // Random selects the passage; it should not silently schedule it for a future day.
+  els.date.value = todayISO();
   els.version.value = 'NKJV';
   els.text.value = passage.text || '';
   els.note.value = passage.note || '';
@@ -1112,6 +1113,9 @@ els.postBtn.addEventListener('click', async () => {
     els.text.focus();
     return;
   }
+  if (verse.date > todayISO() && !window.confirm(
+    `This verse is dated ${prettyDate(verse.date)}. It will be saved now, but it will not appear on Today until that date. Post it as scheduled?`
+  )) return;
 
   els.postBtn.disabled = true;
   els.postBtn.textContent = 'Posting…';
@@ -1128,12 +1132,15 @@ els.postBtn.addEventListener('click', async () => {
       : mergeVerseLists(scheduleEntries, resultVerses);
     renderList(latestVerses);
 
-    setStatus('Live soon', 'live');
-    els.postHint.textContent = DIRECT
-      ? 'Saved to GitHub. The site picks it up within a minute.'
-      : 'Posted. The live site updates in about 30 seconds.';
-    toast('Posted.');
-    els.postBtn.textContent = 'Posted';
+    const scheduled = verse.date > todayISO();
+    setStatus(scheduled ? 'Scheduled' : 'Live soon', scheduled ? '' : 'live');
+    els.postHint.textContent = scheduled
+      ? `Saved successfully. It will appear on ${prettyDate(verse.date)}.`
+      : DIRECT
+        ? 'Saved to GitHub. The site picks it up within a minute.'
+        : 'Posted. The live site updates in about 30 seconds.';
+    toast(scheduled ? 'Scheduled successfully.' : 'Posted.');
+    els.postBtn.textContent = scheduled ? 'Scheduled' : 'Posted';
     window.setTimeout(() => {
       els.postBtn.textContent = 'Post verse';
     }, 2200);
